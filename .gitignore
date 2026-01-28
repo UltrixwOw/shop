@@ -1,0 +1,28 @@
+# ===== Python / Django =====
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+venv/
+.env.*
+*.log
+
+# Django
+staticfiles/
+media/
+
+# ===== Node / Nuxt =====
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+.env.*
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== IDE =====
+.vscode/
+.idea/
