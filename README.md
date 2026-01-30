@@ -1,6 +1,6 @@
 # 🛒 Shop Project
 
-Интернет-магазин  
+Интернет-магазин  git
 Backend: Django + DRF  
 Frontend: Nuxt 4  
 
@@ -10,9 +10,7 @@ Frontend: Nuxt 4
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+python -m django --version
+python -m django startproject config .
 python manage.py migrate
 python manage.py runserver
