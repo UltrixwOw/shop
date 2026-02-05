@@ -16,16 +16,27 @@ class CheckoutView(APIView):
 
     def post(self, request):
 
+        # 1️⃣ Проверка корзины
         cart = request.user.cart
         cart_items = cart.items.all()
-
         if not cart_items.exists():
             return Response({"error": "Cart is empty"}, status=400)
 
-        order = Order.objects.create(user=request.user)
+        # 2️⃣ Получаем адрес из запроса
+        address_id = request.data.get("address_id")
+        if not address_id:
+            return Response({"error": "Address is required"}, status=400)
+
+        try:
+            from apps.addresses.models import Address
+            address = Address.objects.get(id=address_id, user=request.user)
+        except Address.DoesNotExist:
+            return Response({"error": "Invalid address"}, status=400)
+
+        # 3️⃣ Создаём заказ
+        order = Order.objects.create(user=request.user, address=address)
 
         total = 0
-
         for item in cart_items:
             OrderItem.objects.create(
                 order=order,
@@ -33,17 +44,17 @@ class CheckoutView(APIView):
                 product_price=item.product.price,
                 quantity=item.quantity
             )
-
             total += item.product.price * item.quantity
 
         order.total_price = total
         order.save()
 
-        # очищаем корзину
+        # 4️⃣ очищаем корзину
         cart_items.delete()
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+ 
 
 class UserOrdersView(APIView):
     permission_classes = [IsAuthenticated]

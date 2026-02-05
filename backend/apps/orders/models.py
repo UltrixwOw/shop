@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from apps.addresses.models import Address
 
 
 class Order(models.Model):
@@ -16,6 +17,14 @@ class Order(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='orders'
+    )
+
+    address = models.ForeignKey(
+        Address,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders"
     )
 
     status = models.CharField(
