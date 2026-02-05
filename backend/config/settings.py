@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     "apps.addresses",
 
     'apps.payments',
+
+    'apps.order_status',
 ]
 
 MIDDLEWARE = [
