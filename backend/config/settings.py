@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
 
     'apps.users.apps.UsersConfig',
+
+    'apps.shop.apps.ShopConfig',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +134,6 @@ REST_FRAMEWORK = {
         'apps.users.authentication.ActiveUserJWTAuthentication',
     ),
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
