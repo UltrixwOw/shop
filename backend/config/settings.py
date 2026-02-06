@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     'apps.payments',
 
     'apps.order_status',
+
+    'apps.order_history',
 ]
 
 MIDDLEWARE = [

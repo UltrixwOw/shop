@@ -1,4 +1,4 @@
-from .models import OrderStatusHistory
+from apps.order_history.services import OrderHistoryService
 
 class OrderStatusService:
     @staticmethod
@@ -8,9 +8,4 @@ class OrderStatusService:
         order.save()
 
         # Создаём запись истории
-        OrderStatusHistory.objects.create(
-            order=order,
-            status=new_status,
-            changed_by=user,
-            note=note
-        )
+        OrderHistoryService.record_status(order, new_status, user=user, note=note)
