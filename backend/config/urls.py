@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/payments/', include('apps.payments.urls')),
     path('api/order-status/', include('apps.order_status.urls')),
     path('api/order-history/', include('apps.order_history.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

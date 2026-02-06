@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'apps.order_status',
 
     'apps.order_history',
+
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [
