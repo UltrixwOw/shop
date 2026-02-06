@@ -1,21 +1,40 @@
 from django.db import models
-from django.conf import settings
 from apps.orders.models import Order
 
+
 class PaymentTransaction(models.Model):
+
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('paid', 'Paid'),
-        ('failed', 'Failed'),
+        ("pending", "Pending"),
+        ("success", "Success"),
+        ("failed", "Failed"),
+        ("refunded", "Refunded"),
     ]
 
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    payment_method = models.CharField(max_length=50)  # PayPal / Card / Crypto
+    PROVIDER_CHOICES = [
+        ("paypal", "PayPal"),
+        ("card", "Card"),
+        ("crypto", "Crypto"),
+    ]
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="payment")
+
+    provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    provider_payment_id = models.CharField(max_length=100, blank=True, null=True)  # id от провайдера
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.payment_method} - {self.status} - {self.amount}"
+        return f"Payment {self.id} for order {self.order.id}"
+
+class PaymentHistory(models.Model):
+
+    payment = models.ForeignKey(PaymentTransaction, on_delete=models.CASCADE, related_name="history")
+    status = models.CharField(max_length=20)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    raw_response = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.payment} -> {self.status}"
