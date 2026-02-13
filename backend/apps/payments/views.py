@@ -8,6 +8,8 @@ from .models import PaymentTransaction
 from .serializers import PaymentRequestSerializer, PaymentTransactionSerializer
 from .services import PayPalService, CardService, CryptoService
 from apps.orders.models import Order
+from apps.order_status.services import OrderStatusService
+
 
 class PaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -16,8 +18,8 @@ class PaymentView(APIView):
         serializer = PaymentRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        order_id = serializer.validated_data['order_id']
-        payment_method = serializer.validated_data['payment_method']
+        order_id = serializer.validated_data["order_id"]
+        payment_method = serializer.validated_data["payment_method"]
 
         try:
             order = Order.objects.get(id=order_id, user=request.user)
@@ -28,7 +30,7 @@ class PaymentView(APIView):
         service = {
             "paypal": PayPalService,
             "card": CardService,
-            "crypto": CryptoService
+            "crypto": CryptoService,
         }[payment_method]
 
         result = service.process_payment(order)
@@ -40,12 +42,14 @@ class PaymentView(APIView):
             payment_method=payment_method,
             amount=order.total_price,
             provider_payment_id=result.get("provider_payment_id"),
-            status='paid' if result.get("success") else 'failed'
+            status="paid" if result.get("success") else "failed",
         )
 
         # Меняем статус заказа, если оплата прошла
         if result.get("success"):
-            order.payment_status = 'paid'
+            OrderStatusService.change_status(
+                order, "paid", user=request.user, note=f"Payment via {payment_method}"
+            )
             order.payment_method = payment_method
             order.save()
 
