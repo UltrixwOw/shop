@@ -55,6 +55,7 @@ class VerifyEmailView(APIView):
 
         if email_verification_token.check_token(user, token):
             user.is_active = True
+            user.is_verified = True
             user.save()
             return Response({"message": "Email подтверждён"})
         else:

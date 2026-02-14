@@ -1,57 +1,106 @@
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import PaymentTransaction
-from .serializers import PaymentRequestSerializer, PaymentTransactionSerializer
-from .services import PayPalService, CardService, CryptoService
-from apps.orders.models import Order
+from django.db import transaction
+from apps.payments.models import Payment, PaymentTransaction
+from apps.payments.serializers import (
+    PaymentRequestSerializer,
+    PaymentTransactionSerializer,
+)
 from apps.order_status.services import OrderStatusService
+from .services import PayPalService, CardService, CryptoService
+from .serializers import PaymentTransactionSerializer
+from .models import PaymentTransaction
+from rest_framework import generics, permissions
+
+
+# Заглушки сервисов оплаты
+class PayPalService:
+    @staticmethod
+    def process_payment(order):
+        return {"success": True, "provider_payment_id": f"paypal-{order.id}"}
+
+class CardService:
+    @staticmethod
+    def process_payment(order):
+        return {"success": True, "provider_payment_id": f"card-{order.id}"}
+
+class CryptoService:
+    @staticmethod
+    def process_payment(order):
+        return {"success": True, "provider_payment_id": f"crypto-{order.id}"}
 
 
 class PaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = PaymentRequestSerializer(data=request.data)
+        serializer = PaymentRequestSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
-        order_id = serializer.validated_data["order_id"]
+        order = serializer.validated_data["order"]
         payment_method = serializer.validated_data["payment_method"]
+        idempotency_key = serializer.validated_data["idempotency_key"]
 
-        try:
-            order = Order.objects.get(id=order_id, user=request.user)
-        except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=404)
-
-        # Выбираем сервис по методу оплаты
-        service = {
+        service_map = {
             "paypal": PayPalService,
             "card": CardService,
             "crypto": CryptoService,
-        }[payment_method]
+        }
+        service = service_map[payment_method]
 
-        result = service.process_payment(order)
+        with transaction.atomic():
+            # 🔐 Проверка idempotency
+            payment = getattr(order, "payment", None)
+            if payment:
+                existing_tx = payment.transactions.filter(
+                    idempotency_key=idempotency_key
+                ).first()
+                if existing_tx:
+                    return Response(PaymentTransactionSerializer(existing_tx).data)
+            else:
+                payment = Payment.objects.create(
+                    order=order,
+                    provider=payment_method,
+                    status="pending",
+                    amount=order.total_price,
+                )
 
-        # Создаём запись о транзакции
-        transaction = PaymentTransaction.objects.create(
-            order=order,
-            user=request.user,
-            payment_method=payment_method,
-            amount=order.total_price,
-            provider_payment_id=result.get("provider_payment_id"),
-            status="paid" if result.get("success") else "failed",
-        )
+            # Выполнение оплаты
+            result = service.process_payment(order)
 
-        # Меняем статус заказа, если оплата прошла
-        if result.get("success"):
-            OrderStatusService.change_status(
-                order, "paid", user=request.user, note=f"Payment via {payment_method}"
+            # Создание транзакции
+            transaction_obj = PaymentTransaction.objects.create(
+                payment=payment,
+                idempotency_key=idempotency_key,
+                provider_payment_id=result.get("provider_payment_id"),
+                success=result.get("success"),
+                raw_response=result,
             )
-            order.payment_method = payment_method
-            order.save()
 
-        response_serializer = PaymentTransactionSerializer(transaction)
-        return Response(response_serializer.data)
+            # Если успех — меняем статус
+            if result.get("success"):
+                payment.status = "paid"
+                payment.save()
+                OrderStatusService.change_status(
+                    order,
+                    "paid",
+                    user=request.user,
+                    note=f"Payment via {payment_method}",
+                )
+
+        return Response(PaymentTransactionSerializer(transaction_obj).data)
+
+
+class PaymentTransactionListView(generics.ListAPIView):
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        order_id = self.request.query_params.get("order_id")
+        # фильтруем через связанный Payment
+        return PaymentTransaction.objects.filter(
+            payment__order__id=order_id, payment__order__user=self.request.user
+        )
