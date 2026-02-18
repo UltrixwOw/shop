@@ -4,11 +4,12 @@ from django.shortcuts import render
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
 from .models import Cart, CartItem
 from .serializers import CartSerializer
 from apps.shop.models import Product
+
+from rest_framework.permissions import IsAuthenticated
 
 class CartView(APIView):
     permission_classes = [IsAuthenticated]

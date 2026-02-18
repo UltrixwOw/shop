@@ -8,7 +8,7 @@ from apps.cart.models import CartItem
 from .models import Order, OrderItem
 from .serializers import CheckoutSerializer, OrderSerializer
 from apps.order_status.services import OrderStatusService
-
+from rest_framework.exceptions import ValidationError
 
 class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -66,15 +66,20 @@ class OrderStatusUpdateView(APIView):
 
     def post(self, request, order_id):
         new_status = request.data.get("status")
+
         try:
-            with transaction.atomic():
-                order = Order.objects.select_for_update().get(id=order_id)
+            order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
             return Response({"error": "Order not found"}, status=404)
 
         try:
-            OrderStatusService.change_status(order, new_status, user=request.user)
-        except Exception as e:
+            OrderStatusService.change_status(
+                order,
+                new_status,
+                user=request.user,
+                note=f"Changed via admin API"
+            )
+        except ValidationError as e:
             return Response({"error": str(e)}, status=400)
 
         return Response({"status": order.status})

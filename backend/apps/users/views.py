@@ -14,7 +14,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from rest_framework.permissions import AllowAny
+
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -46,6 +50,8 @@ from django.utils.encoding import force_str
 from django.shortcuts import get_object_or_404
 
 class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
