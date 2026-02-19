@@ -13,85 +13,49 @@ from .serializers import PaymentTransactionSerializer
 from .models import PaymentTransaction
 from rest_framework import generics, permissions
 
+from core.throttling import PaymentThrottle
 
-# Заглушки сервисов оплаты
-class PayPalService:
-    @staticmethod
-    def process_payment(order):
-        return {"success": True, "provider_payment_id": f"paypal-{order.id}"}
-
-class CardService:
-    @staticmethod
-    def process_payment(order):
-        return {"success": True, "provider_payment_id": f"card-{order.id}"}
-
-class CryptoService:
-    @staticmethod
-    def process_payment(order):
-        return {"success": True, "provider_payment_id": f"crypto-{order.id}"}
+from apps.orders.models import Order
+from .serializers import PaymentRequestSerializer, PaymentTransactionSerializer
+from .services import PaymentService
+from .services import PayPalService, CardService, CryptoService
 
 
 class PaymentView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentThrottle]
+
 
     def post(self, request):
+
         serializer = PaymentRequestSerializer(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
-        order = serializer.validated_data["order"]
+        order_id = serializer.validated_data["order_id"]
         payment_method = serializer.validated_data["payment_method"]
         idempotency_key = serializer.validated_data["idempotency_key"]
 
-        service_map = {
+        order = Order.objects.get(id=order_id, user=request.user)
+
+        provider_map = {
             "paypal": PayPalService,
             "card": CardService,
             "crypto": CryptoService,
         }
-        service = service_map[payment_method]
 
-        with transaction.atomic():
-            # 🔐 Проверка idempotency
-            payment = getattr(order, "payment", None)
-            if payment:
-                existing_tx = payment.transactions.filter(
-                    idempotency_key=idempotency_key
-                ).first()
-                if existing_tx:
-                    return Response(PaymentTransactionSerializer(existing_tx).data)
-            else:
-                payment = Payment.objects.create(
-                    order=order,
-                    provider=payment_method,
-                    status="pending",
-                    amount=order.total_price,
-                )
+        provider_service = provider_map[payment_method]
 
-            # Выполнение оплаты
-            result = service.process_payment(order)
+        transaction = PaymentService.process(
+            order=order,
+            user=request.user,
+            payment_method=payment_method,
+            idempotency_key=idempotency_key,
+            provider_service=provider_service,
+        )
 
-            # Создание транзакции
-            transaction_obj = PaymentTransaction.objects.create(
-                payment=payment,
-                idempotency_key=idempotency_key,
-                provider_payment_id=result.get("provider_payment_id"),
-                success=result.get("success"),
-                raw_response=result,
-            )
-
-            # Если успех — меняем статус
-            if result.get("success"):
-                payment.status = "paid"
-                payment.save()
-                OrderStatusService.change_status(
-                    order,
-                    "paid",
-                    user=request.user,
-                    note=f"Payment via {payment_method}",
-                )
-
-        return Response(PaymentTransactionSerializer(transaction_obj).data)
+        return Response(PaymentTransactionSerializer(transaction).data)
 
 
 class PaymentTransactionListView(generics.ListAPIView):

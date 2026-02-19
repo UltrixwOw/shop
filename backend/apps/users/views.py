@@ -14,6 +14,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+from django.shortcuts import get_object_or_404
+
 from rest_framework.permissions import AllowAny
 
 class RegisterView(APIView):
@@ -43,11 +47,6 @@ class RegisterView(APIView):
             {"message": "Проверьте email для подтверждения"},
             status=status.HTTP_201_CREATED
         )
-        
-
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.shortcuts import get_object_or_404
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]

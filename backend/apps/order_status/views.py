@@ -7,7 +7,7 @@ from .serializers import OrderStatusSerializer
 from apps.orders.models import Order
 from .services import OrderStatusService
 
-from apps.common.permissions import IsManagerOrAdmin
+from core.permissions import IsManagerOrAdmin
 
 class OrderStatusUpdateView(APIView):
     permission_classes = [IsManagerOrAdmin]
