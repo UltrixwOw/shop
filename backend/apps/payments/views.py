@@ -13,12 +13,12 @@ from .serializers import PaymentTransactionSerializer
 from .models import PaymentTransaction
 from rest_framework import generics, permissions
 
-from core.throttling import PaymentThrottle
-
 from apps.orders.models import Order
 from .serializers import PaymentRequestSerializer, PaymentTransactionSerializer
 from .services import PaymentService
 from .services import PayPalService, CardService, CryptoService
+
+from core.throttling import PaymentThrottle
 
 
 class PaymentView(APIView):
@@ -68,3 +68,32 @@ class PaymentTransactionListView(generics.ListAPIView):
         return PaymentTransaction.objects.filter(
             payment__order__id=order_id, payment__order__user=self.request.user
         )
+
+class PaymentWebhookView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        provider_payment_id = request.data.get("provider_payment_id")
+        success = request.data.get("success")
+
+        try:
+            transaction = PaymentTransaction.objects.get(
+                provider_payment_id=provider_payment_id
+            )
+        except PaymentTransaction.DoesNotExist:
+            return Response({"error": "Transaction not found"}, status=404)
+
+        payment = transaction.payment
+
+        if success:
+            payment.status = "paid"
+            payment.save()
+
+            OrderStatusService.change_status(
+                payment.order,
+                "paid",
+                note="Webhook confirmation"
+            )
+
+        return Response({"status": "ok"})

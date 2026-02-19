@@ -2,8 +2,8 @@ from rest_framework.throttling import UserRateThrottle
 
 
 class PaymentThrottle(UserRateThrottle):
-    rate = "5/min"
+    scope = "payments"
 
 
 class LoginThrottle(UserRateThrottle):
-    rate = "10/min"
+    scope = "login"
