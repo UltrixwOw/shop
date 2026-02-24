@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Order, OrderItem
+from django.core.exceptions import ValidationError
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -12,3 +13,8 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ('user__email',)
     inlines = [OrderItemInline]
     ordering = ('-created_at',)
+
+def save_model(self, request, obj, form, change):
+    if obj.is_paid and change:
+        raise ValidationError("Paid orders cannot be modified.")
+    super().save_model(request, obj, form, change)

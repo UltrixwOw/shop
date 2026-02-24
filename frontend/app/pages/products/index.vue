@@ -1,28 +1,26 @@
 <script setup lang="ts">
+import { useProductsStore } from '~/stores/products'
+import { useCartStore } from '~/stores/cart'
+const productsStore = useProductsStore()
+const cart = useCartStore()
 
-const { $api } = useNuxtApp()
+await productsStore.fetchProducts()
 
-const { data: products, pending, error } = await useAsyncData(
-  'products',
-  async () => {
-    const res = await $api.get('/shop/products/')
-    return res.data
-  }
-)
+const add = async (id: number) => {
+  await cart.addToCart(id, 1)
+}
 </script>
 
 <template>
-  <div>
-    <h1>Products</h1>
+  <div class="catalog">
+    <div v-for="p in productsStore.items" :key="p.id" class="card">
 
-    <div v-if="pending">Loading...</div>
-    <div v-else-if="error">Error loading products</div>
 
-    <div v-else>
-      <div v-for="product in products" :key="product.id">
-        <h3>{{ product.name }}</h3>
-        <p>{{ product.price }} $</p>
-      </div>
+      <p>{{ p.price }} ₽</p>
+
+      <button @click="add(p.id)">
+        В корзину
+      </button>
     </div>
   </div>
 </template>

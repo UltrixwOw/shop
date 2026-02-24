@@ -6,12 +6,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuthStore()
   
   // Если store не инициализирован, ждем
-  if (!auth.initialized) {
+  // if (!auth.initialized) {
     // Можно добавить логику ожидания
+    // return
+  // }
+  if (auth.accessToken == null) {
     return
+  } else {
+    return navigateTo('/')
   }
-  
-  if (!auth.accessToken) {
-    return navigateTo('/login')
-  }
+
 })
