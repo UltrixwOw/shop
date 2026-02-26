@@ -16,6 +16,7 @@ const { data: products, error } = await useFetch(
 <template>
   <NuxtLayout>
     <NuxtPage />
+    <AppAuthModal />
   </NuxtLayout>
   <pre>{{ products }}</pre>
 </template>

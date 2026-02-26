@@ -1,12 +1,17 @@
 <template>
-  <div v-if="isOpen" class="modal">
-    <!-- LOGIN STEP 1 -->
-    <div v-if="mode === 'login' && step === 1">
+  <div v-if="modal.isOpen" class="modal">
+
+    <!-- LOGIN -->
+    <div v-if="mode === 'login'">
       <h2>Вход</h2>
 
       <input v-model="email" type="email" placeholder="Email" />
+      <input v-model="password" type="password" placeholder="Пароль" />
 
-      <button @click="checkUser">Далее</button>
+      <button :disabled="loading" @click="login">
+        <span v-if="loading">Загрузка...</span>
+        <span v-else>Войти</span>
+      </button>
 
       <p v-if="error" class="error">{{ error }}</p>
 
@@ -14,17 +19,6 @@
         Нет аккаунта?
         <button @click="switchToRegister">Регистрация</button>
       </p>
-    </div>
-
-    <!-- LOGIN STEP 2 -->
-    <div v-if="mode === 'login' && step === 2">
-      <h2>Введите пароль</h2>
-
-      <input v-model="password" type="password" placeholder="Пароль" />
-
-      <button @click="login">Войти</button>
-
-      <p v-if="error" class="error">{{ error }}</p>
     </div>
 
     <!-- REGISTER -->
@@ -35,7 +29,10 @@
       <input v-model="password" type="password" placeholder="Пароль" />
       <input v-model="confirmPassword" type="password" placeholder="Подтвердите пароль" />
 
-      <button @click="register">Зарегистрироваться</button>
+      <button :disabled="loading" @click="register">
+        <span v-if="loading">Загрузка...</span>
+        <span v-else>Зарегистрироваться</span>
+      </button>
 
       <p v-if="error" class="error">{{ error }}</p>
 
@@ -47,120 +44,113 @@
 
     <!-- VERIFY -->
     <div v-if="mode === 'verify'">
-      <h2>Подтвердите email</h2>
-      <p>Мы отправили ссылку на вашу почту.</p>
+      <h2>Проверьте почту</h2>
+      <p>Мы отправили письмо для подтверждения email.</p>
 
       <button @click="switchToLogin">Перейти ко входу</button>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useNuxtApp } from "#app";
-import { useAuthStore } from "~/stores/auth";
+import { ref } from "vue"
+import { useNuxtApp } from "#app"
+import { useAuthStore } from "~/stores/auth"
+import { useAuthModalStore } from "~/stores/authModal"
 
-const { $api } = useNuxtApp();
-const auth = useAuthStore();
+const { $api } = useNuxtApp()
+const auth = useAuthStore()
+const modal = useAuthModalStore()
 
-// 🔐 Управление
-const isOpen = ref(true);
-const mode = ref<"login" | "register" | "verify">("login");
-const step = ref(1);
+const mode = ref<"login" | "register" | "verify">("login")
 
-// Данные
-const email = ref("");
-const password = ref("");
-const confirmPassword = ref("");
-const error = ref("");
-
-// --------------------
-// Переключения
-// --------------------
-
-const switchToRegister = () => {
-  reset();
-  mode.value = "register";
-};
-
-const switchToLogin = () => {
-  reset();
-  mode.value = "login";
-  step.value = 1;
-};
+const email = ref("")
+const password = ref("")
+const confirmPassword = ref("")
+const error = ref("")
+const loading = ref(false)
 
 const reset = () => {
-  email.value = "";
-  password.value = "";
-  confirmPassword.value = "";
-  error.value = "";
-};
+  email.value = ""
+  password.value = ""
+  confirmPassword.value = ""
+  error.value = ""
+}
 
-// --------------------
-// Проверка пользователя
-// --------------------
+const switchToRegister = () => {
+  reset()
+  mode.value = "register"
+}
 
-const checkUser = async () => {
-  error.value = "";
-
-  try {
-    await $api.post("/users/check-email/", { email: email.value });
-    step.value = 2;
-  } catch {
-    error.value = "Такой пользователь не найден. Зарегистрируйтесь.";
-  }
-};
-
-// --------------------
-// Логин
-// --------------------
+const switchToLogin = () => {
+  reset()
+  mode.value = "login"
+}
 
 const login = async () => {
-  error.value = "";
+  error.value = ""
+  loading.value = true
 
   try {
-    await auth.login(email.value, password.value);
-    isOpen.value = false;
-  } catch {
-    error.value = "Неверный email или пароль";
+    await auth.login(email.value, password.value)
+    modal.close()   // 🔥 авто-закрытие
+    reset()
+  } catch (e: any) {
+    error.value = e.response?.data?.detail || "Ошибка входа"
+  } finally {
+    loading.value = false
   }
-};
-
-// --------------------
-// Регистрация
-// --------------------
+}
 
 const register = async () => {
-  error.value = "";
+  error.value = ""
 
   if (password.value !== confirmPassword.value) {
-    error.value = "Пароли не совпадают";
-    return;
+    error.value = "Пароли не совпадают"
+    return
   }
+
+  loading.value = true
 
   try {
-    await $api.post("/users/register/", {
+    const res = await $api.post("/users/register/", {
       email: email.value,
       password: password.value,
-    });
+    })
 
-    step.value = "verify";
-  } catch (e: any) {
-    if (e.response?.data?.error === "User already registered") {
-      errorMessage.value = "Пользователь уже зарегистрирован";
+    if (res.data?.message === "Check your email") {
+      reset()
+      mode.value = "verify"
     }
+  } catch (e: any) {
+    error.value = e.response?.data?.error || "Ошибка регистрации"
+  } finally {
+    loading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
 .modal {
-  padding: 20px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 30px;
   background: white;
   width: 400px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+  border-radius: 10px;
+}
+
+button {
+  margin-top: 10px;
+  width: 100%;
 }
 
 .error {
   color: red;
+  margin-top: 10px;
 }
 </style>

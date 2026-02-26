@@ -1,30 +1,25 @@
 <script setup>
-const { $api } = useNuxtApp()
+const { $api } = useNuxtApp();
 
-const { data: products } = await useAsyncData('products', async () => {
-  const res = await $api.get('/shop/products/')
-  return res.data
-})
+const { data: products } = await useAsyncData("products", async () => {
+  const res = await $api.get("/shop/products/");
+  return res.data;
+});
 </script>
 
 <template>
   <div class="products-grid">
-    <div v-for="product in products"
-      :key="product.id"
-      class="product-card">
-      <NuxtLink
-      :to="`/products/${product.id}`"
-    >
-      <div v-if="product.images?.length">
-        <img :src="product.images[0].image" style="max-width: 300px;"/>
-      </div>
+    <div v-for="product in products" :key="product.id" class="product-card">
+      <NuxtLink :to="`/products/${product.id}`">
+        <div v-if="product.images?.length">
+          <img :src="product.images[0].image" style="max-width: 300px" />
+        </div>
 
-      <h3>{{ product.name }}</h3>
-      <p>${{ product.price }}</p>
-    </NuxtLink>
-    <AppAddToCartButton :productId="product.id" />
+        <h3>{{ product.name }}</h3>
+        <p>${{ product.price }}</p>
+      </NuxtLink>
+      <AppAddToCartButton :productId="product.id" />
     </div>
-    
   </div>
 </template>
 

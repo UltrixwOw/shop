@@ -14,15 +14,7 @@ const auth = useAuthStore()
       <NuxtLink to="/cart">Cart</NuxtLink>
       <NuxtLink to="/me">Me</NuxtLink>
       
-      <!-- Показываем Login если не авторизован -->
-      <NuxtLink v-if="!auth.isAuthenticated" to="/login">
-        Login
-      </NuxtLink>
-      
-      <!-- Показываем Logout если авторизован -->
-      <button v-else @click="auth.logout()">
-        Logout ({{ auth.user?.email }})
-      </button>
+      <AppLoginButton />
     </nav>
     
     <!-- Индикатор загрузки (опционально) -->
