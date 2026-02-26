@@ -65,9 +65,10 @@ class RegisterView(APIView):
     def _send_verification_email(self, request, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = email_verification_token.make_token(user)
-        current_site = get_current_site(request)
 
-        link = f"http://{current_site.domain}/api/users/verify/{uid}/{token}/"
+        FRONTEND_URL = "http://127.0.0.1:3000"
+
+        link = f"{FRONTEND_URL}/verify-email?uid={uid}&token={token}"
 
         send_mail(
             subject="Подтвердите email",
@@ -79,20 +80,39 @@ class RegisterView(APIView):
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, uidb64, token):
+    def post(self, request):
+        uidb64 = request.data.get("uid")
+        token = request.data.get("token")
+
+        if not uidb64 or not token:
+            return Response({"error": "Invalid data"}, status=400)
+
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = get_object_or_404(User, pk=uid)
         except Exception:
-            return Response({"error": "Неверная ссылка"}, status=400)
+            return Response({"error": "Invalid link"}, status=400)
 
         if email_verification_token.check_token(user, token):
             user.is_active = True
             user.is_verified = True
             user.save()
-            return Response({"message": "Email подтверждён"})
+            return Response({"message": "Email verified"})
 
-        return Response({"error": "Ссылка устарела"}, status=400)
+        return Response({"error": "Link expired"}, status=400)
+    
+class ResendVerificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        if user.is_verified:
+            return Response({"message": "Email already verified"}, status=400)
+
+        RegisterView()._send_verification_email(request, user)
+
+        return Response({"message": "Verification email resent"})
     
 class CheckEmailView(APIView):
     permission_classes = [AllowAny]

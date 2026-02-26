@@ -40,15 +40,40 @@ class AddToCartView(APIView):
 
         return Response({"status": "added"})
 
-class RemoveFromCartView(APIView):
+class RemoveCartItemView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        item_id = request.data.get("item_id")
-
-        CartItem.objects.filter(
+    def delete(self, request, item_id):
+        # Сначала получаем объект
+        item = CartItem.objects.filter(
             id=item_id,
-            cart=request.user.cart
-        ).delete()
+            cart__user=request.user  # используем cart__user как в UpdateCartItemView
+        ).first()
+        
+        # Проверяем, существует ли объект
+        if not item:
+            return Response({"error": "Not found"}, status=404)
+        
+        # Удаляем объект
+        item.delete()
+        
+        return Response({"status": "removed", "success": True})
 
-        return Response({"status": "removed"})
+class UpdateCartItemView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, item_id):
+        quantity = request.data.get("quantity")
+
+        item = CartItem.objects.filter(
+            id=item_id,
+            cart__user=request.user
+        ).first()
+
+        if not item:
+            return Response({"error": "Not found"}, status=404)
+
+        item.quantity = quantity
+        item.save()
+
+        return Response({"success": True})

@@ -11,6 +11,7 @@ from apps.order_status.services import OrderStatusService
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from apps.orders.services import OrderService
+from rest_framework.generics import RetrieveAPIView
 
 # apps/orders/views.py
 
@@ -74,3 +75,28 @@ class OrderStatusUpdateView(APIView):
             return Response({"error": str(e)}, status=400)
 
         return Response({"status": order.status})
+    
+    
+class OrderDetailView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        # пользователь может видеть только свои заказы
+        return Order.objects.filter(user=self.request.user)
+    
+class OrderByUUIDView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, uuid):
+        try:
+            order = Order.objects.prefetch_related("items").get(
+                uuid=uuid,
+                user=request.user
+            )
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=404)
+
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)

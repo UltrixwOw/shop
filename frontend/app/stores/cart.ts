@@ -74,18 +74,23 @@ export const useCartStore = defineStore('cart', () => {
     const { $api } = useNuxtApp()
 
     try {
-      await $api.post('/cart/add/', {
+      const existing = items.value.find(i => i.product === productId)
+
+      if (existing) {
+        await updateQuantity(existing.id, existing.quantity + quantity)
+        return
+      }
+
+      const res = await $api.post('/cart/add/', {
         product_id: productId,
         quantity
       })
 
-      // 🔥 вместо fetchCart — обновляем локально
-      const existing = items.value.find(i => i.product === productId)
-
-      if (existing) {
-        existing.quantity += quantity
+      // если backend не возвращает item → делаем fetch
+      if (res.data?.id) {
+        items.value.push(res.data)
       } else {
-        await fetchCart() // если нового нет в store
+        await fetchCart()
       }
 
     } catch (e) {
@@ -102,7 +107,7 @@ export const useCartStore = defineStore('cart', () => {
 
     const backup = [...items.value]
 
-    // optimistic
+    // optimistic remove
     items.value = items.value.filter(i => i.id !== itemId)
 
     try {
@@ -126,11 +131,14 @@ export const useCartStore = defineStore('cart', () => {
     if (!item) return
 
     const oldQuantity = item.quantity
+
+    // 🔥 Optimistic UI
     item.quantity = quantity
 
     try {
       await $api.patch(`/cart/update/${itemId}/`, { quantity })
     } catch (e) {
+      // rollback если ошибка
       item.quantity = oldQuantity
       console.error('Update failed', e)
     }
