@@ -11,8 +11,9 @@ const modal = useAuthModalStore()
   <UHeader>
     <!-- LEFT -->
     <template #left>
-      <NuxtLink to="/" class="text-xl font-bold">
-        Shop
+      <AppLogo />
+      <NuxtLink to="/" class="text-2xl font-bold italic tracking-tight">
+        Meloni
       </NuxtLink>
     </template>
 

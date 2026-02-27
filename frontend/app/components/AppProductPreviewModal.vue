@@ -24,6 +24,7 @@ const modal = useProductPreviewModalStore()
           :src="modal.product.images[0].image"
           class="w-full rounded-lg object-cover"
         />
+        <img v-else src="@/assets/images/productPreview.png" class="w-full rounded-lg object-cover">
 
         <p class="text-lg font-semibold text-primary">
           ${{ modal.product.price }}

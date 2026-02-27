@@ -62,6 +62,12 @@ const { data: products, pending, error } = await useAsyncData(
             class="w-full h-full object-cover hover:scale-105 transition"
           />
         </div>
+        <div v-else class="aspect-square overflow-hidden rounded-lg mb-4">
+          <img
+            src="@/assets/images/productPreview.png"
+            class="w-full h-full object-cover hover:scale-105 transition"
+          />
+        </div>
 
         <!-- Название -->
         <h3 class="text-lg font-semibold mb-2">
