@@ -6,6 +6,6 @@ definePageMeta({
 
 <template>
     <div>
-        123
+        main
     </div>
 </template>

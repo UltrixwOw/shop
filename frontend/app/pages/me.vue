@@ -1,190 +1,227 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: "guest",
-});
+definePageMeta({ middleware: 'guest' })
 
-import { ref, reactive, onMounted } from "vue";
-import { useNuxtApp } from "#app";
+const { $api } = useNuxtApp()
 
-const { $api } = useNuxtApp();
+const user = ref<any>(null)
+const addresses = ref<any[]>([])
+const orders = ref<any[]>([])
 
-const user = ref<any>(null);
-const addresses = ref<any[]>([]);
-const loading = ref(false);
-const message = ref("");
-
-// форма редактирования адреса
-const editingAddress = ref<number | null>(null);
+const loadingOrders = ref(true)
+const message = ref('')
 
 const addressForm = reactive({
   id: null,
-  full_name: "",
-  street: "",
-  city: "",
-  postal_code: "",
-  country: "",
-  phone: "",
-  is_default: false,
-});
+  full_name: '',
+  street: '',
+  city: '',
+  postal_code: '',
+  country: '',
+  phone: '',
+  is_default: false
+})
 
-// ===================
-// LOAD DATA
-// ===================
+const editingAddress = ref<number | null>(null)
 
 onMounted(async () => {
-  await loadUser();
-  await loadAddresses();
-  await fetchOrders();
-});
+  await loadUser()
+  await loadAddresses()
+  await loadOrders()
+})
 
 const loadUser = async () => {
-  const res = await $api.get("/users/me/");
-  user.value = res.data;
-};
+  const res = await $api.get('/users/me/')
+  user.value = res.data
+}
 
 const loadAddresses = async () => {
-  const res = await $api.get("/addresses/");
-  addresses.value = res.data;
-};
+  const res = await $api.get('/addresses/')
+  addresses.value = res.data
+}
 
-// ===================
-// EMAIL VERIFICATION
-// ===================
-
-const resendVerification = async () => {
+const loadOrders = async () => {
   try {
-    await $api.post("/users/resend-verification/");
-    message.value = "Verification email sent";
-  } catch (e) {
-    message.value = "Error sending email";
+    const res = await $api.get('/orders/')
+    orders.value = res.data
+  } finally {
+    loadingOrders.value = false
   }
-};
-
-// ===================
-// ADDRESS CRUD
-// ===================
+}
 
 const startEdit = (addr: any) => {
-  editingAddress.value = addr.id;
-  Object.assign(addressForm, addr);
-};
-
-const saveAddress = async () => {
-  try {
-    if (editingAddress.value) {
-      await $api.put(`/addresses/${editingAddress.value}/`, addressForm);
-    } else {
-      await $api.post("/addresses/", addressForm);
-    }
-
-    await loadAddresses();
-    cancelEdit();
-  } catch (e) {
-    console.error(e);
-  }
-};
+  editingAddress.value = addr.id
+  Object.assign(addressForm, addr)
+}
 
 const cancelEdit = () => {
-  editingAddress.value = null;
+  editingAddress.value = null
   Object.assign(addressForm, {
     id: null,
-    full_name: "",
-    street: "",
-    city: "",
-    postal_code: "",
-    country: "",
-    phone: "",
-    is_default: false,
-  });
-};
+    full_name: '',
+    street: '',
+    city: '',
+    postal_code: '',
+    country: '',
+    phone: '',
+    is_default: false
+  })
+}
+
+const saveAddress = async () => {
+  if (editingAddress.value) {
+    await $api.put(`/addresses/${editingAddress.value}/`, addressForm)
+  } else {
+    await $api.post('/addresses/', addressForm)
+  }
+
+  await loadAddresses()
+  cancelEdit()
+}
 
 const deleteAddress = async (id: number) => {
-  await $api.delete(`/addresses/${id}/`);
-  await loadAddresses();
-};
-
-const orders = ref([]);
-const ordersLoading = ref(true);
-
-const fetchOrders = async () => {
-  try {
-    const res = await $api.get("/orders/");
-    orders.value = res.data;
-  } finally {
-    ordersLoading.value = false;
-  }
-};
+  await $api.delete(`/addresses/${id}/`)
+  await loadAddresses()
+}
 </script>
 
 <template>
-  <div class="me-page">
-    <h1>My Profile</h1>
+  <UContainer class="py-12 max-w-4xl">
 
-    <div v-if="user">
-      <p><strong>Email:</strong> {{ user.email }}</p>
+    <h1 class="text-3xl font-bold mb-8">
+      My Profile
+    </h1>
 
-      <p>
-        <strong>Status:</strong>
-        <span v-if="user.is_verified">✅ Verified</span>
-        <span v-else>❌ Not verified</span>
-      </p>
+    <!-- USER INFO -->
+    <UCard class="mb-8">
+      <p><strong>Email:</strong> {{ user?.email }}</p>
 
-      <button v-if="!user.is_verified" @click="resendVerification">
-        Resend verification email
-      </button>
+      <UBadge
+        :color="user?.is_verified ? 'primary' : 'error'"
+        class="mt-2"
+      >
+        {{ user?.is_verified ? 'Verified' : 'Not Verified' }}
+      </UBadge>
+    </UCard>
 
-      <p v-if="message">{{ message }}</p>
+    <!-- ADDRESSES -->
+    <h2 class="text-xl font-semibold mb-4">
+      My Addresses
+    </h2>
+
+    <div class="grid gap-4 mb-8">
+      <UCard
+        v-for="addr in addresses"
+        :key="addr.id"
+      >
+        <div class="flex justify-between">
+
+          <div>
+            <p class="font-semibold">
+              {{ addr.full_name }}
+              <UBadge
+                v-if="addr.is_default"
+                color="primary"
+                size="xs"
+              >
+                Default
+              </UBadge>
+            </p>
+
+            <p class="text-sm text-gray-500">
+              {{ addr.street }}, {{ addr.city }}
+            </p>
+          </div>
+
+          <div class="flex gap-2">
+            <UButton size="xs" variant="soft" @click="startEdit(addr)">
+              Edit
+            </UButton>
+
+            <UButton size="xs" color="error" variant="ghost"
+                     @click="deleteAddress(addr.id)">
+              Delete
+            </UButton>
+          </div>
+
+        </div>
+      </UCard>
     </div>
 
-    <hr />
+    <!-- ADDRESS FORM -->
+    <UCard class="mb-12">
+      <template #header>
+        {{ editingAddress ? 'Edit Address' : 'Add Address' }}
+      </template>
 
-    <h2>My Addresses</h2>
+      <div class="grid gap-4">
+        <UInput v-model="addressForm.full_name" placeholder="Full name" />
+        <UInput v-model="addressForm.street" placeholder="Street" />
+        <UInput v-model="addressForm.city" placeholder="City" />
+        <UInput v-model="addressForm.postal_code" placeholder="Postal code" />
+        <UInput v-model="addressForm.country" placeholder="Country" />
+        <UInput v-model="addressForm.phone" placeholder="Phone" />
 
-    <div v-for="addr in addresses" :key="addr.id" class="address-card">
-      <p>{{ addr.full_name }}</p>
-      <p>{{ addr.street }}, {{ addr.city }}</p>
-      <p>{{ addr.postal_code }}, {{ addr.country }}</p>
-      <p>{{ addr.phone }}</p>
-      <p v-if="addr.is_default">⭐ Default</p>
+        <UCheckbox
+          v-model="addressForm.is_default"
+          label="Set as default"
+        />
 
-      <button @click="startEdit(addr)">Edit</button>
-      <button @click="deleteAddress(addr.id)">Delete</button>
-    </div>
+        <div class="flex gap-3">
+          <UButton @click="saveAddress">
+            Save
+          </UButton>
 
-    <hr />
-
-    <h2>{{ editingAddress ? "Edit Address" : "Add Address" }}</h2>
-
-    <form @submit.prevent="saveAddress">
-      <input v-model="addressForm.full_name" placeholder="Full name" required />
-      <input v-model="addressForm.street" placeholder="Street" required />
-      <input v-model="addressForm.city" placeholder="City" required />
-      <input v-model="addressForm.postal_code" placeholder="Postal code" required />
-      <input v-model="addressForm.country" placeholder="Country" required />
-      <input v-model="addressForm.phone" placeholder="Phone" required />
-
-      <label>
-        <input type="checkbox" v-model="addressForm.is_default" />
-        Is default
-      </label>
-
-      <button type="submit">Save</button>
-      <button type="button" @click="cancelEdit">Cancel</button>
-    </form>
-    <h2>My Orders</h2>
-
-    <div v-if="ordersLoading">Loading...</div>
-
-    <div v-else-if="orders.length === 0">No orders yet</div>
-
-    <div v-else>
-      <div v-for="order in orders" :key="order.uuid" class="order-card">
-        <p><strong>ID:</strong> {{ order.uuid }}</p>
-        <p><strong>Status:</strong> {{ order.status }}</p>
-        <p><strong>Total:</strong> ${{ order.total_price }}</p>
-
-        <NuxtLink :to="`/order-success/${order.uuid}`"> View details </NuxtLink>
+          <UButton
+            variant="ghost"
+            @click="cancelEdit"
+          >
+            Cancel
+          </UButton>
+        </div>
       </div>
+    </UCard>
+
+    <!-- ORDERS -->
+    <h2 class="text-xl font-semibold mb-4">
+      My Orders
+    </h2>
+
+    <UCard v-if="loadingOrders">
+      Loading...
+    </UCard>
+
+    <div v-else-if="orders.length === 0">
+      <UAlert title="No orders yet" />
     </div>
-  </div>
+
+    <div v-else class="space-y-4">
+      <UCard
+        v-for="order in orders"
+        :key="order.uuid"
+      >
+        <div class="flex justify-between items-center">
+
+          <div>
+            <p class="font-mono text-sm">
+              {{ order.uuid }}
+            </p>
+
+            <p class="text-sm">
+              ${{ order.total_price }}
+            </p>
+          </div>
+
+          <UButton
+            size="sm"
+            variant="soft"
+            :to="`/order-success/${order.uuid}`"
+          >
+            View
+          </UButton>
+
+        </div>
+      </UCard>
+    </div>
+
+  </UContainer>
 </template>

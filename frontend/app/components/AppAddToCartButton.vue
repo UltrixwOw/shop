@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
 
 const props = defineProps({
@@ -14,7 +14,6 @@ const isInCart = computed(() =>
 
 const add = async () => {
   if (isInCart.value) return
-
   loading.value = true
   await cart.addToCart(props.productId, 1)
   loading.value = false
@@ -22,30 +21,14 @@ const add = async () => {
 </script>
 
 <template>
-  <button
+  <UButton
+    color="primary"
+    :loading="loading"
+    :disabled="isInCart"
+    block
     @click="add"
-    :disabled="loading || isInCart"
-    :class="[
-      'btn',
-      isInCart ? 'in-cart' : ''
-    ]"
   >
     <span v-if="isInCart">✓ In cart</span>
-    <span v-else>{{ loading ? 'Adding...' : 'Add to cart' }}</span>
-  </button>
+    <span v-else>Add</span>
+  </UButton>
 </template>
-
-<style scoped>
-.btn {
-  padding: 10px 20px;
-  border: none;
-  cursor: pointer;
-  background: black;
-  color: white;
-}
-
-.in-cart {
-  background: green;
-  cursor: not-allowed;
-}
-</style>

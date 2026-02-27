@@ -1,44 +1,53 @@
-<script setup>
+<script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
 
 const { $api } = useNuxtApp()
 const router = useRouter()
-const cartStore = useCartStore()
+const cart = useCartStore()
 
-// ✅ ВАЖНО — объявляем
-const selectedAddress = ref(null)
+await cart.fetchCart()
+
+const selectedAddress = ref<number | null>(null)
+const loading = ref(false)
 
 const { data: addresses } = await useAsyncData('addresses', async () => {
   const res = await $api.get('/addresses/')
   return res.data
 })
 
-const loading = ref(false)
+/**
+ * 🔥 Автовыбор default адреса
+ */
+watch(
+  addresses,
+  (val) => {
+    if (!val?.length) return
+
+    const defaultAddr = val.find(a => a.is_default)
+    selectedAddress.value = defaultAddr
+      ? defaultAddr.id
+      : val[0].id
+  },
+  { immediate: true }
+)
 
 const submitOrder = async () => {
-  if (!selectedAddress.value) {
-    alert('Select address')
-    return
-  }
+  if (!selectedAddress.value) return
 
   try {
     loading.value = true
 
     const res = await $api.post('/orders/checkout/', {
-      address_id: selectedAddress.value,
+      address_id: selectedAddress.value
     })
 
     const uuid = res.data?.order_uuid
+    if (!uuid) throw new Error('Order UUID missing')
 
-    if (!uuid) {
-      throw new Error('Order UUID missing')
-    }
-
-    await cartStore.fetchCart()
+    await cart.fetchCart()
 
     router.push(`/order-success/${uuid}`)
-
-  } catch (e) {
+  } catch (e: any) {
     console.error(e.response?.data || e.message)
   } finally {
     loading.value = false
@@ -47,33 +56,70 @@ const submitOrder = async () => {
 </script>
 
 <template>
-  <div>
-    <h1>Checkout</h1>
+  <UContainer class="py-12 max-w-3xl">
 
-    <!-- Выбор адреса -->
-    <div v-if="addresses?.length">
-      <h3>Select address</h3>
+    <h1 class="text-3xl font-bold mb-8">
+      Checkout
+    </h1>
 
-      <div
-        v-for="address in addresses"
-        :key="address.id"
-      >
-        <input
-          type="radio"
-          :value="address.id"
-          v-model="selectedAddress"
-        />
-        {{ address.full_name }} —
-        {{ address.street }},
-        {{ address.city }}
+    <!-- CART SUMMARY -->
+    <UCard class="mb-8">
+      <template #header>
+        Order Summary
+      </template>
+
+      <div v-for="item in cart.items" :key="item.id"
+           class="flex justify-between py-2">
+
+        <span>
+          {{ item.product_name }} × {{ item.quantity }}
+        </span>
+
+        <span>
+          ${{ Number(item.product_price) * item.quantity }}
+        </span>
       </div>
-    </div>
 
-    <button
+      <div class="flex justify-between pt-4 border-t font-semibold text-lg">
+        <span>Total:</span>
+        <span>${{ cart.totalPrice }}</span>
+      </div>
+    </UCard>
+
+    <!-- ADDRESS SELECTION -->
+    <UCard v-if="addresses?.length">
+      <template #header>
+        Select Address
+      </template>
+
+      <URadioGroup
+        v-model="selectedAddress"
+        :items="addresses.map(a => ({
+          label: `${a.full_name} — ${a.street}, ${a.city}`,
+          value: a.id
+        }))"
+      />
+    </UCard>
+
+    <UAlert
+      v-else
+      color="error"
+      variant="soft"
+      title="No addresses found"
+      class="my-6"
+    />
+
+    <!-- SUBMIT -->
+    <UButton
+      block
+      size="lg"
+      class="mt-8"
+      :loading="loading"
+      :disabled="cart.isEmpty || !selectedAddress"
       @click="submitOrder"
-      :disabled="loading"
     >
-      {{ loading ? 'Processing...' : 'Place order' }}
-    </button>
-  </div>
+      Place Order
+    </UButton>
+
+  </UContainer>
 </template>

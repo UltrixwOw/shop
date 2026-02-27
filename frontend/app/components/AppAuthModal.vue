@@ -1,60 +1,6 @@
-<template>
-  <div v-if="modal.isOpen" class="modal">
-
-    <!-- LOGIN -->
-    <div v-if="mode === 'login'">
-      <h2>Вход</h2>
-
-      <input v-model="email" type="email" placeholder="Email" />
-      <input v-model="password" type="password" placeholder="Пароль" />
-
-      <button :disabled="loading" @click="login">
-        <span v-if="loading">Загрузка...</span>
-        <span v-else>Войти</span>
-      </button>
-
-      <p v-if="error" class="error">{{ error }}</p>
-
-      <p>
-        Нет аккаунта?
-        <button @click="switchToRegister">Регистрация</button>
-      </p>
-    </div>
-
-    <!-- REGISTER -->
-    <div v-if="mode === 'register'">
-      <h2>Регистрация</h2>
-
-      <input v-model="email" type="email" placeholder="Email" />
-      <input v-model="password" type="password" placeholder="Пароль" />
-      <input v-model="confirmPassword" type="password" placeholder="Подтвердите пароль" />
-
-      <button :disabled="loading" @click="register">
-        <span v-if="loading">Загрузка...</span>
-        <span v-else>Зарегистрироваться</span>
-      </button>
-
-      <p v-if="error" class="error">{{ error }}</p>
-
-      <p>
-        Уже есть аккаунт?
-        <button @click="switchToLogin">Вход</button>
-      </p>
-    </div>
-
-    <!-- VERIFY -->
-    <div v-if="mode === 'verify'">
-      <h2>Проверьте почту</h2>
-      <p>Мы отправили письмо для подтверждения email.</p>
-
-      <button @click="switchToLogin">Перейти ко входу</button>
-    </div>
-
-  </div>
-</template>
-
+<!-- components/AppAuthModal.vue -->
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, computed } from "vue"
 import { useNuxtApp } from "#app"
 import { useAuthStore } from "~/stores/auth"
 import { useAuthModalStore } from "~/stores/authModal"
@@ -94,7 +40,7 @@ const login = async () => {
 
   try {
     await auth.login(email.value, password.value)
-    modal.close()   // 🔥 авто-закрытие
+    modal.close()
     reset()
   } catch (e: any) {
     error.value = e.response?.data?.detail || "Ошибка входа"
@@ -129,28 +75,134 @@ const register = async () => {
     loading.value = false
   }
 }
+
+// Вычисляемое свойство для заголовка
+const modalTitle = computed(() => {
+  switch (mode.value) {
+    case 'login': return 'Вход'
+    case 'register': return 'Регистрация'
+    case 'verify': return 'Проверьте почту'
+  }
+})
+
+// ✅ Добавляем описание для каждого режима (для screen reader'ов)
+const modalDescription = computed(() => {
+  switch (mode.value) {
+    case 'login': return 'Форма входа с email и паролем'
+    case 'register': return 'Форма регистрации нового аккаунта'
+    case 'verify': return 'Подтверждение email адреса'
+  }
+})
 </script>
 
-<style scoped>
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 30px;
-  background: white;
-  width: 400px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.2);
-  border-radius: 10px;
-}
+<template>
+  <UModal
+    v-model:open="modal.isOpen"
+    :title="modalTitle"
+    :description="modalDescription"  
+    :close="{
+      icon: 'i-heroicons-x-mark-20-solid',
+      color: 'neutral',
+      variant: 'ghost'
+    }"
+    class="max-w-md"
+  >
+    <template #body>
+      <!-- ЛОГИН -->
+      <div v-if="mode === 'login'" class="space-y-4">
+        <UFormField label="Email">
+          <UInput v-model="email" type="email" class="w-full" />
+        </UFormField>
 
-button {
-  margin-top: 10px;
-  width: 100%;
-}
+        <UFormField label="Пароль">
+          <UInput v-model="password" type="password" class="w-full" />
+        </UFormField>
 
-.error {
-  color: red;
-  margin-top: 10px;
-}
-</style>
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="soft"
+          :title="error"
+        />
+      </div>
+
+      <!-- РЕГИСТРАЦИЯ -->
+      <div v-else-if="mode === 'register'" class="space-y-4">
+        <UFormField label="Email">
+          <UInput v-model="email" type="email" class="w-full" />
+        </UFormField>
+
+        <UFormField label="Пароль">
+          <UInput v-model="password" type="password" class="w-full" />
+        </UFormField>
+
+        <UFormField label="Подтвердите пароль">
+          <UInput v-model="confirmPassword" type="password" class="w-full" />
+        </UFormField>
+
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="soft"
+          :title="error"
+        />
+      </div>
+
+      <!-- ПОДТВЕРЖДЕНИЕ -->
+      <div v-else-if="mode === 'verify'" class="space-y-4">
+        <UAlert color="primary" variant="soft">
+          Мы отправили письмо для подтверждения email.
+        </UAlert>
+      </div>
+    </template>
+
+    <!-- ФУТЕР с кнопками действий -->
+    <template #footer="{ close }">
+      <div class="flex flex-col gap-4 w-full">
+        <!-- Кнопки для логина/регистрации -->
+        <template v-if="mode === 'login'">
+          <UButton
+            class="w-full"
+            :loading="loading"
+            @click="login"
+          >
+            Войти
+          </UButton>
+          
+          <div class="text-sm text-center">
+            Нет аккаунта?
+            <UButton variant="link" @click="switchToRegister">
+              Регистрация
+            </UButton>
+          </div>
+        </template>
+
+        <template v-else-if="mode === 'register'">
+          <UButton
+            class="w-full"
+            :loading="loading"
+            @click="register"
+          >
+            Зарегистрироваться
+          </UButton>
+          
+          <div class="text-sm text-center">
+            Уже есть аккаунт?
+            <UButton variant="link" @click="switchToLogin">
+              Вход
+            </UButton>
+          </div>
+        </template>
+
+        <template v-else-if="mode === 'verify'">
+          <UButton
+            class="w-full"
+            @click="switchToLogin"
+          >
+            Перейти ко входу
+          </UButton>
+        </template>
+      </div>
+    </template>
+  </UModal>
+</template>

@@ -1,22 +1,15 @@
-<script setup>
-// useAsyncData или useFetch автоматически выполняются на сервере
-const config = useRuntimeConfig();
+<script setup lang="ts">
 
-// Лучший способ для Nuxt - useFetch
-const { data: products, error } = await useFetch(
-  `${config.public.apiBase}/shop/products/`,
-  {
-    // Опции запроса
-    server: true, // выполнять на сервере (по умолчанию true)
-    lazy: false, // ждать завершения
-  }
-);
 </script>
 
 <template>
-  <NuxtLayout>
-    <NuxtPage />
+  <UApp>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+
     <AppAuthModal />
-  </NuxtLayout>
-  <pre>{{ products }}</pre>
+    <AppProductPreviewModal />
+    <AppCartModal />
+  </UApp>
 </template>

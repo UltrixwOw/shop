@@ -21,12 +21,16 @@ export const useCartStore = defineStore('cart', () => {
   // COMPUTED
   // =============================
 
-  const totalPrice = computed(() =>
-    items.value.reduce(
-      (sum, item) => sum + item.product_price * item.quantity,
-      0
-    )
-  )
+  const totalPrice = computed(() => {
+    return items.value.reduce((sum, item) => {
+      const price = Number(item.product_price)
+      const qty = Number(item.quantity)
+
+      if (isNaN(price) || isNaN(qty)) return sum
+
+      return sum + price * qty
+    }, 0)
+  })
 
   const totalCount = computed(() =>
     items.value.reduce((sum, item) => sum + item.quantity, 0)
