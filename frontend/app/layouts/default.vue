@@ -5,9 +5,9 @@
   <div>
     <AppHeader />
     
-    <main class="container">
+    <UMain>
       <slot />
-    </main>
+    </UMain>
 
     <AppFooter />
   </div>

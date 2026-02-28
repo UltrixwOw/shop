@@ -1,5 +1,5 @@
 <template>
-    <div>
-        
-    </div>
+  <UContainer>
+    <UColorModeButton variant="ghost" size="sm" />
+  </UContainer>
 </template>

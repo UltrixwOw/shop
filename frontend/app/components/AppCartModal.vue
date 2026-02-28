@@ -44,39 +44,46 @@ const checkoutOrder = async () => {
         />
       </div>
 
-      <div v-else class="space-y-6">
+      <div v-else class="space-y-5">
+
         <UCard
           v-for="item in cart.items"
           :key="item.id"
+          class="p-5"
         >
-          <div class="flex justify-between items-start gap-4">
+          <div class="flex justify-between items-center">
 
-            <div>
-              <h4 class="font-semibold">
+            <!-- LEFT -->
+            <div class="space-y-1">
+              <h4 class="font-semibold text-lg">
                 {{ item.product_name }}
               </h4>
-              <p class="text-sm text-gray-500">
-                ${{ item.product_price }}
+
+              <p class="text-sm text-zinc-500">
+                ${{ item.price }}
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <!-- CENTER QUANTITY -->
+            <div class="flex items-center gap-4">
 
               <UButton
-                size="xs"
+                size="sm"
                 variant="soft"
+                class="w-10 h-10 rounded-full text-lg font-bold"
                 @click="decrease(item)"
               >
                 -
               </UButton>
 
-              <span class="w-6 text-center">
+              <span class="w-8 text-center text-lg font-semibold">
                 {{ item.quantity }}
               </span>
 
               <UButton
-                size="xs"
+                size="sm"
                 variant="soft"
+                class="w-10 h-10 rounded-full text-lg font-bold"
                 @click="increase(item)"
               >
                 +
@@ -84,26 +91,36 @@ const checkoutOrder = async () => {
 
             </div>
 
-            <UButton
-              size="xs"
-              color="error"
-              variant="ghost"
-              icon="i-heroicons-trash"
-              @click="remove(item.id)"
-            />
+            <!-- RIGHT PRICE + REMOVE -->
+            <div class="flex items-center gap-4">
+
+              <span class="font-semibold text-primary text-lg">
+                ${{ (item.price * item.quantity).toFixed(2) }}
+              </span>
+
+              <UButton
+                size="sm"
+                color="error"
+                variant="ghost"
+                icon="i-heroicons-trash"
+                @click="remove(item.id)"
+              />
+
+            </div>
 
           </div>
         </UCard>
 
-        <div class="flex justify-between items-center pt-4 border-t">
+        <div class="flex justify-between items-center pt-6 border-t">
           <span class="text-lg font-semibold">
             Итого:
           </span>
 
-          <span class="text-xl font-bold text-primary">
-            ${{ cart.totalPrice }}
+          <span class="text-2xl font-bold text-primary">
+            ${{ cart.totalPrice.toFixed(2) }}
           </span>
         </div>
+
       </div>
     </template>
 

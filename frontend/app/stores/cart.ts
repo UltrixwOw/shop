@@ -4,7 +4,7 @@ interface CartItem {
   id: number
   product: number
   product_name: string
-  product_price: number
+  price: number
   quantity: number
 }
 
@@ -23,12 +23,7 @@ export const useCartStore = defineStore('cart', () => {
 
   const totalPrice = computed(() => {
     return items.value.reduce((sum, item) => {
-      const price = Number(item.product_price)
-      const qty = Number(item.quantity)
-
-      if (isNaN(price) || isNaN(qty)) return sum
-
-      return sum + price * qty
+      return sum + item.price * item.quantity
     }, 0)
   })
 
@@ -42,8 +37,15 @@ export const useCartStore = defineStore('cart', () => {
   // INTERNAL HELPERS
   // =============================
 
-  const setCart = (data: CartResponse) => {
-    items.value = data.items || []
+  const setCart = (data: any) => {
+    items.value = (data.items || []).map((item: any) => ({
+      id: item.id,
+      product: item.product,
+      product_name: item.product_name,
+      price: Number(item.price),
+      quantity: Number(item.quantity)
+    }))
+
     initialized.value = true
   }
 

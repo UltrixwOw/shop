@@ -15,9 +15,6 @@ const { data: addresses } = await useAsyncData('addresses', async () => {
   return res.data
 })
 
-/**
- * 🔥 Автовыбор default адреса
- */
 watch(
   addresses,
   (val) => {
@@ -45,8 +42,8 @@ const submitOrder = async () => {
     if (!uuid) throw new Error('Order UUID missing')
 
     await cart.fetchCart()
-
     router.push(`/order-success/${uuid}`)
+
   } catch (e: any) {
     console.error(e.response?.data || e.message)
   } finally {
@@ -62,31 +59,33 @@ const submitOrder = async () => {
       Checkout
     </h1>
 
-    <!-- CART SUMMARY -->
+    <!-- SUMMARY -->
     <UCard class="mb-8">
       <template #header>
         Order Summary
       </template>
 
-      <div v-for="item in cart.items" :key="item.id"
-           class="flex justify-between py-2">
-
+      <div
+        v-for="item in cart.items"
+        :key="item.id"
+        class="flex justify-between py-2"
+      >
         <span>
           {{ item.product_name }} × {{ item.quantity }}
         </span>
 
         <span>
-          ${{ Number(item.product_price) * item.quantity }}
+          ${{ (item.price * item.quantity).toFixed(2) }}
         </span>
       </div>
 
       <div class="flex justify-between pt-4 border-t font-semibold text-lg">
         <span>Total:</span>
-        <span>${{ cart.totalPrice }}</span>
+        <span>${{ cart.totalPrice.toFixed(2) }}</span>
       </div>
     </UCard>
 
-    <!-- ADDRESS SELECTION -->
+    <!-- ADDRESS -->
     <UCard v-if="addresses?.length">
       <template #header>
         Select Address
@@ -109,7 +108,7 @@ const submitOrder = async () => {
       class="my-6"
     />
 
-    <!-- SUBMIT -->
+    <!-- BUTTON -->
     <UButton
       block
       size="lg"

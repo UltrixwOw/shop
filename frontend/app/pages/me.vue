@@ -10,6 +10,11 @@ const orders = ref<any[]>([])
 const loadingOrders = ref(true)
 const message = ref('')
 
+// Пагинация для заказов - по 4 на страницу
+const page = ref(1)
+const itemsPerPage = ref(4)
+const totalOrders = ref(0)
+
 const addressForm = reactive({
   id: null,
   full_name: '',
@@ -22,6 +27,26 @@ const addressForm = reactive({
 })
 
 const editingAddress = ref<number | null>(null)
+
+// Вычисляемые заказы для текущей страницы
+const paginatedOrders = computed(() => {
+  if (!orders.value.length) return []
+  
+  const start = (page.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return orders.value.slice(start, end)
+})
+
+// Общее количество страниц
+const totalPages = computed(() => {
+  return Math.ceil(orders.value.length / itemsPerPage.value)
+})
+
+// Следим за изменением страницы
+watch(page, () => {
+  // При смене страницы прокручиваем к заказам
+  document.getElementById('orders-section')?.scrollIntoView({ behavior: 'smooth' })
+})
 
 onMounted(async () => {
   await loadUser()
@@ -41,8 +66,21 @@ const loadAddresses = async () => {
 
 const loadOrders = async () => {
   try {
+    loadingOrders.value = true
     const res = await $api.get('/orders/')
-    orders.value = res.data
+    
+    // Если API поддерживает пагинацию
+    if (res.data.results) {
+      orders.value = res.data.results
+      totalOrders.value = res.data.count
+    } else {
+      // Если API возвращает все заказы сразу
+      orders.value = res.data
+      totalOrders.value = res.data.length
+    }
+    
+    // Сбрасываем на первую страницу при загрузке новых заказов
+    page.value = 1
   } finally {
     loadingOrders.value = false
   }
@@ -182,45 +220,94 @@ const deleteAddress = async (id: number) => {
     </UCard>
 
     <!-- ORDERS -->
-    <h2 class="text-xl font-semibold mb-4">
+    <h2 id="orders-section" class="text-xl font-semibold mb-4">
       My Orders
     </h2>
 
     <UCard v-if="loadingOrders">
-      Loading...
+      <div class="flex justify-center py-8">
+        <UIcon name="i-heroicons-arrow-path" class="animate-spin h-6 w-6" />
+      </div>
     </UCard>
 
     <div v-else-if="orders.length === 0">
       <UAlert title="No orders yet" />
     </div>
 
-    <div v-else class="space-y-4">
-      <UCard
-        v-for="order in orders"
-        :key="order.uuid"
-      >
-        <div class="flex justify-between items-center">
+    <div v-else>
+      <!-- Список заказов с пагинацией по 4 -->
+      <div class="space-y-4">
+        <UCard
+          v-for="order in paginatedOrders"
+          :key="order.uuid"
+        >
+          <div class="flex justify-between items-center">
 
-          <div>
-            <p class="font-mono text-sm">
-              {{ order.uuid }}
-            </p>
+            <div class="space-y-2">
+              <p class="font-mono text-sm text-gray-500">
+                {{ order.uuid }}
+              </p>
 
-            <p class="text-sm">
-              ${{ order.total_price }}
-            </p>
+              <div class="flex items-center gap-4">
+                <p class="font-semibold">
+                  ${{ Number(order.total_price).toFixed(2) }}
+                </p>
+
+                <UBadge
+                  :color="order.status === 'paid' 
+                    ? 'success' 
+                    : order.status === 'pending' 
+                    ? 'warning' 
+                    : order.status === 'cancelled'
+                    ? 'error'
+                    : order.status === 'shipped'
+                    ? 'primary'
+                    : 'neutral'"
+                  size="sm"
+                  variant="soft"
+                >
+                  {{ order.status }}
+                </UBadge>
+
+                <p class="text-xs text-gray-400">
+                  {{ new Date(order.created_at || order.date).toLocaleDateString() }}
+                </p>
+              </div>
+            </div>
+
+            <UButton
+              size="sm"
+              variant="soft"
+              :to="`/order-success/${order.uuid}`"
+            >
+              View Details
+            </UButton>
+
           </div>
+        </UCard>
+      </div>
 
-          <UButton
-            size="sm"
-            variant="soft"
-            :to="`/order-success/${order.uuid}`"
-          >
-            View
-          </UButton>
-
-        </div>
-      </UCard>
+      <!-- Пагинация -->
+      <div v-if="orders.length > itemsPerPage" class="mt-6 flex justify-center">
+        <UPagination
+          v-model:page="page"
+          :items-per-page="itemsPerPage"
+          :total="orders.length"
+          :sibling-count="1"
+          show-edges
+          color="neutral"
+          variant="outline"
+          active-color="primary"
+          active-variant="solid"
+        />
+      </div>
+      
+      <!-- Информация о количестве заказов -->
+      <p v-if="orders.length > 0" class="text-sm text-gray-500 text-center mt-4">
+        Showing {{ ((page - 1) * itemsPerPage) + 1 }} 
+        to {{ Math.min(page * itemsPerPage, orders.length) }} 
+        of {{ orders.length }} orders
+      </p>
     </div>
 
   </UContainer>

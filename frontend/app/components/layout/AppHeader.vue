@@ -1,44 +1,58 @@
 <!-- components/AppHeader.vue -->
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
-import { useAuthModalStore } from '~/stores/authModal'
+import { useAuthStore } from "~/stores/auth";
+import { useAuthModalStore } from "~/stores/authModal";
 
-const auth = useAuthStore()
-const modal = useAuthModalStore()
+const auth = useAuthStore();
+const modal = useAuthModalStore();
 </script>
 
 <template>
   <UHeader>
-    <!-- LEFT -->
-    <template #left>
+    <template #title>
+    <div class="appLogo-box">
       <AppLogo />
-      <NuxtLink to="/" class="text-2xl font-bold italic tracking-tight">
+      <h1 class="text-2xl font-bold italic tracking-tight" color="pink-300">
         Meloni
-      </NuxtLink>
+      </h1>
+    </div>
+      
     </template>
+    <!-- LEFT -->
+
 
     <!-- CENTER (опционально) -->
-    <template #center>
-      <!-- Можно добавить навигацию -->
-    </template>
+    <div class="menu-box">
+      <ULink to="/products" variant="ghost"> Products </ULink>
+      <ULink to="/about" variant="ghost"> About us </ULink>
+    </div>
 
     <!-- RIGHT -->
     <template #right>
       <div class="flex items-center gap-1">
-        <UButton to="/products" variant="ghost">
-          Products
-        </UButton>
-
         <AppCartButton />
 
         <AppLoginButton />
 
-        <UIcon 
-          v-if="auth.loading" 
-          name="i-heroicons-arrow-path-20-solid" 
-          class="animate-spin ml-2" 
+        <UIcon
+          v-if="auth.loading"
+          name="i-heroicons-arrow-path-20-solid"
+          class="animate-spin ml-2"
         />
       </div>
     </template>
   </UHeader>
 </template>
+
+<style scoped>
+  .appLogo-box {
+    display: flex;
+    align-items: center;
+  }
+  .appLogo-box h1 {
+    margin-left: 8px;
+  }
+  .menu-box a {
+    margin: 0 8px;
+  }
+</style>
