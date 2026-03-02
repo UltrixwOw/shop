@@ -1,186 +1,188 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'guest' })
+definePageMeta({ middleware: "guest" });
 
-const { $api } = useNuxtApp()
+const { $api } = useNuxtApp();
 
-const user = ref<any>(null)
-const addresses = ref<any[]>([])
-const orders = ref<any[]>([])
+const user = ref<any>(null);
+const addresses = ref<any[]>([]);
+const orders = ref<any[]>([]);
 
-const loadingOrders = ref(true)
-const message = ref('')
+const loadingOrders = ref(true);
+const message = ref("");
+
+// cancelling
+const cancelling = ref<string | null>(null);
+
+const cancelOrder = async (uuid: string) => {
+  try {
+    cancelling.value = uuid;
+
+    await $api.post(`/orders/${uuid}/cancel/`);
+
+    // обновляем локально (optimistic)
+    const order = orders.value.find((o) => o.uuid === uuid);
+    if (order) {
+      order.status = order.status === "paid" ? "refunded" : "cancelled";
+    }
+  } catch (e: any) {
+    console.error(e.response?.data || e.message);
+  } finally {
+    cancelling.value = null;
+  }
+};
 
 // Пагинация для заказов - по 4 на страницу
-const page = ref(1)
-const itemsPerPage = ref(4)
-const totalOrders = ref(0)
+const page = ref(1);
+const itemsPerPage = ref(4);
+const totalOrders = ref(0);
 
 const addressForm = reactive({
   id: null,
-  full_name: '',
-  street: '',
-  city: '',
-  postal_code: '',
-  country: '',
-  phone: '',
-  is_default: false
-})
+  full_name: "",
+  street: "",
+  city: "",
+  postal_code: "",
+  country: "",
+  phone: "",
+  is_default: false,
+});
 
-const editingAddress = ref<number | null>(null)
+const editingAddress = ref<number | null>(null);
 
 // Вычисляемые заказы для текущей страницы
 const paginatedOrders = computed(() => {
-  if (!orders.value.length) return []
-  
-  const start = (page.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return orders.value.slice(start, end)
-})
+  if (!orders.value.length) return [];
+
+  const start = (page.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return orders.value.slice(start, end);
+});
 
 // Общее количество страниц
 const totalPages = computed(() => {
-  return Math.ceil(orders.value.length / itemsPerPage.value)
-})
+  return Math.ceil(orders.value.length / itemsPerPage.value);
+});
 
 // Следим за изменением страницы
 watch(page, () => {
   // При смене страницы прокручиваем к заказам
-  document.getElementById('orders-section')?.scrollIntoView({ behavior: 'smooth' })
-})
+  document.getElementById("orders-section")?.scrollIntoView({ behavior: "smooth" });
+});
 
 onMounted(async () => {
-  await loadUser()
-  await loadAddresses()
-  await loadOrders()
-})
+  await loadUser();
+  await loadAddresses();
+  await loadOrders();
+});
 
 const loadUser = async () => {
-  const res = await $api.get('/users/me/')
-  user.value = res.data
-}
+  const res = await $api.get("/users/me/");
+  user.value = res.data;
+};
 
 const loadAddresses = async () => {
-  const res = await $api.get('/addresses/')
-  addresses.value = res.data
-}
+  const res = await $api.get("/addresses/");
+  addresses.value = res.data;
+};
 
 const loadOrders = async () => {
   try {
-    loadingOrders.value = true
-    const res = await $api.get('/orders/')
-    
+    loadingOrders.value = true;
+    const res = await $api.get("/orders/");
+
     // Если API поддерживает пагинацию
     if (res.data.results) {
-      orders.value = res.data.results
-      totalOrders.value = res.data.count
+      orders.value = res.data.results;
+      totalOrders.value = res.data.count;
     } else {
       // Если API возвращает все заказы сразу
-      orders.value = res.data
-      totalOrders.value = res.data.length
+      orders.value = res.data;
+      totalOrders.value = res.data.length;
     }
-    
+
     // Сбрасываем на первую страницу при загрузке новых заказов
-    page.value = 1
+    page.value = 1;
   } finally {
-    loadingOrders.value = false
+    loadingOrders.value = false;
   }
-}
+};
 
 const startEdit = (addr: any) => {
-  editingAddress.value = addr.id
-  Object.assign(addressForm, addr)
-}
+  editingAddress.value = addr.id;
+  Object.assign(addressForm, addr);
+};
 
 const cancelEdit = () => {
-  editingAddress.value = null
+  editingAddress.value = null;
   Object.assign(addressForm, {
     id: null,
-    full_name: '',
-    street: '',
-    city: '',
-    postal_code: '',
-    country: '',
-    phone: '',
-    is_default: false
-  })
-}
+    full_name: "",
+    street: "",
+    city: "",
+    postal_code: "",
+    country: "",
+    phone: "",
+    is_default: false,
+  });
+};
 
 const saveAddress = async () => {
   if (editingAddress.value) {
-    await $api.put(`/addresses/${editingAddress.value}/`, addressForm)
+    await $api.put(`/addresses/${editingAddress.value}/`, addressForm);
   } else {
-    await $api.post('/addresses/', addressForm)
+    await $api.post("/addresses/", addressForm);
   }
 
-  await loadAddresses()
-  cancelEdit()
-}
+  await loadAddresses();
+  cancelEdit();
+};
 
 const deleteAddress = async (id: number) => {
-  await $api.delete(`/addresses/${id}/`)
-  await loadAddresses()
-}
+  await $api.delete(`/addresses/${id}/`);
+  await loadAddresses();
+};
 </script>
 
 <template>
   <UContainer class="py-12 max-w-4xl">
-
-    <h1 class="text-3xl font-bold mb-8">
-      My Profile
-    </h1>
+    <h1 class="text-3xl font-bold mb-8">My Profile</h1>
 
     <!-- USER INFO -->
     <UCard class="mb-8">
       <p><strong>Email:</strong> {{ user?.email }}</p>
 
-      <UBadge
-        :color="user?.is_verified ? 'primary' : 'error'"
-        class="mt-2"
-      >
-        {{ user?.is_verified ? 'Verified' : 'Not Verified' }}
+      <UBadge :color="user?.is_verified ? 'primary' : 'error'" class="mt-2">
+        {{ user?.is_verified ? "Verified" : "Not Verified" }}
       </UBadge>
     </UCard>
 
     <!-- ADDRESSES -->
-    <h2 class="text-xl font-semibold mb-4">
-      My Addresses
-    </h2>
+    <h2 class="text-xl font-semibold mb-4">My Addresses</h2>
 
     <div class="grid gap-4 mb-8">
-      <UCard
-        v-for="addr in addresses"
-        :key="addr.id"
-      >
+      <UCard v-for="addr in addresses" :key="addr.id">
         <div class="flex justify-between">
-
           <div>
             <p class="font-semibold">
               {{ addr.full_name }}
-              <UBadge
-                v-if="addr.is_default"
-                color="primary"
-                size="xs"
-              >
-                Default
-              </UBadge>
+              <UBadge v-if="addr.is_default" color="primary" size="xs"> Default </UBadge>
             </p>
 
-            <p class="text-sm text-gray-500">
-              {{ addr.street }}, {{ addr.city }}
-            </p>
+            <p class="text-sm text-gray-500">{{ addr.street }}, {{ addr.city }}</p>
           </div>
 
           <div class="flex gap-2">
-            <UButton size="xs" variant="soft" @click="startEdit(addr)">
-              Edit
-            </UButton>
+            <UButton size="xs" variant="soft" @click="startEdit(addr)"> Edit </UButton>
 
-            <UButton size="xs" color="error" variant="ghost"
-                     @click="deleteAddress(addr.id)">
+            <UButton
+              size="xs"
+              color="error"
+              variant="ghost"
+              @click="deleteAddress(addr.id)"
+            >
               Delete
             </UButton>
           </div>
-
         </div>
       </UCard>
     </div>
@@ -188,7 +190,7 @@ const deleteAddress = async (id: number) => {
     <!-- ADDRESS FORM -->
     <UCard class="mb-12">
       <template #header>
-        {{ editingAddress ? 'Edit Address' : 'Add Address' }}
+        {{ editingAddress ? "Edit Address" : "Add Address" }}
       </template>
 
       <div class="grid gap-4">
@@ -199,30 +201,18 @@ const deleteAddress = async (id: number) => {
         <UInput v-model="addressForm.country" placeholder="Country" />
         <UInput v-model="addressForm.phone" placeholder="Phone" />
 
-        <UCheckbox
-          v-model="addressForm.is_default"
-          label="Set as default"
-        />
+        <UCheckbox v-model="addressForm.is_default" label="Set as default" />
 
         <div class="flex gap-3">
-          <UButton @click="saveAddress">
-            Save
-          </UButton>
+          <UButton @click="saveAddress"> Save </UButton>
 
-          <UButton
-            variant="ghost"
-            @click="cancelEdit"
-          >
-            Cancel
-          </UButton>
+          <UButton variant="ghost" @click="cancelEdit"> Cancel </UButton>
         </div>
       </div>
     </UCard>
 
     <!-- ORDERS -->
-    <h2 id="orders-section" class="text-xl font-semibold mb-4">
-      My Orders
-    </h2>
+    <h2 id="orders-section" class="text-xl font-semibold mb-4">My Orders</h2>
 
     <UCard v-if="loadingOrders">
       <div class="flex justify-center py-8">
@@ -237,32 +227,28 @@ const deleteAddress = async (id: number) => {
     <div v-else>
       <!-- Список заказов с пагинацией по 4 -->
       <div class="space-y-4">
-        <UCard
-          v-for="order in paginatedOrders"
-          :key="order.uuid"
-        >
+        <UCard v-for="order in paginatedOrders" :key="order.uuid">
           <div class="flex justify-between items-center">
-
             <div class="space-y-2">
               <p class="font-mono text-sm text-gray-500">
                 {{ order.uuid }}
               </p>
 
               <div class="flex items-center gap-4">
-                <p class="font-semibold">
-                  ${{ Number(order.total_price).toFixed(2) }}
-                </p>
+                <p class="font-semibold">${{ Number(order.total_price).toFixed(2) }}</p>
 
                 <UBadge
-                  :color="order.status === 'paid' 
-                    ? 'success' 
-                    : order.status === 'pending' 
-                    ? 'warning' 
-                    : order.status === 'cancelled'
-                    ? 'error'
-                    : order.status === 'shipped'
-                    ? 'primary'
-                    : 'neutral'"
+                  :color="
+                    order.status === 'paid'
+                      ? 'success'
+                      : order.status === 'pending'
+                      ? 'warning'
+                      : order.status === 'cancelled'
+                      ? 'error'
+                      : order.status === 'shipped'
+                      ? 'primary'
+                      : 'neutral'
+                  "
                   size="sm"
                   variant="soft"
                 >
@@ -275,14 +261,22 @@ const deleteAddress = async (id: number) => {
               </div>
             </div>
 
-            <UButton
-              size="sm"
-              variant="soft"
-              :to="`/order-success/${order.uuid}`"
-            >
-              View Details
-            </UButton>
+            <div class="flex gap-2">
+              <UButton size="sm" variant="soft" :to="`/order-success/${order.uuid}`">
+                View Details
+              </UButton>
 
+              <UButton
+                v-if="['pending', 'paid'].includes(order.status)"
+                size="sm"
+                color="error"
+                variant="soft"
+                :loading="cancelling === order.uuid"
+                @click="cancelOrder(order.uuid)"
+              >
+                Cancel
+              </UButton>
+            </div>
           </div>
         </UCard>
       </div>
@@ -301,14 +295,12 @@ const deleteAddress = async (id: number) => {
           active-variant="solid"
         />
       </div>
-      
+
       <!-- Информация о количестве заказов -->
       <p v-if="orders.length > 0" class="text-sm text-gray-500 text-center mt-4">
-        Showing {{ ((page - 1) * itemsPerPage) + 1 }} 
-        to {{ Math.min(page * itemsPerPage, orders.length) }} 
-        of {{ orders.length }} orders
+        Showing {{ (page - 1) * itemsPerPage + 1 }} to
+        {{ Math.min(page * itemsPerPage, orders.length) }} of {{ orders.length }} orders
       </p>
     </div>
-
   </UContainer>
 </template>

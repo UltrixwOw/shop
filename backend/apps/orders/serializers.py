@@ -5,9 +5,16 @@ from apps.addresses.models import Address
 
 class OrderItemSerializer(serializers.ModelSerializer):
 
+    product_id = serializers.IntegerField(source="product.id", read_only=True)
+
     class Meta:
         model = OrderItem
-        fields = ["product_name", "product_price", "quantity"]
+        fields = [
+            "product_id",
+            "product_name",
+            "product_price",
+            "quantity"
+        ]
 
 
 class OrderSerializer(serializers.ModelSerializer):

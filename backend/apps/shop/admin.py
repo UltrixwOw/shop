@@ -7,7 +7,7 @@ from .models import Product, Category
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'is_active', 'category')
+    list_display = ('name', 'price', 'is_active', 'stock', 'category')
     list_filter = ('is_active', 'category')
     search_fields = ('name', 'description')
     ordering = ('-id',)

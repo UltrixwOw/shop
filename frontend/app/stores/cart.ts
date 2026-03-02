@@ -6,6 +6,7 @@ interface CartItem {
   product_name: string
   price: number
   quantity: number
+  product_stock: number
 }
 
 interface CartResponse {
@@ -21,20 +22,18 @@ export const useCartStore = defineStore('cart', () => {
   // COMPUTED
   // =============================
 
-  const totalPrice = computed(() => {
-    return items.value.reduce((sum, item) => {
-      return sum + item.price * item.quantity
-    }, 0)
-  })
+  const totalPrice = computed(() =>
+    items.value.reduce((sum, i) => sum + i.price * i.quantity, 0)
+  )
 
   const totalCount = computed(() =>
-    items.value.reduce((sum, item) => sum + item.quantity, 0)
+    items.value.reduce((sum, i) => sum + i.quantity, 0)
   )
 
   const isEmpty = computed(() => items.value.length === 0)
 
   // =============================
-  // INTERNAL HELPERS
+  // INTERNAL
   // =============================
 
   const setCart = (data: any) => {
@@ -43,17 +42,18 @@ export const useCartStore = defineStore('cart', () => {
       product: item.product,
       product_name: item.product_name,
       price: Number(item.price),
-      quantity: Number(item.quantity)
+      quantity: Number(item.quantity),
+      product_stock: Number(item.product_stock)
     }))
 
     initialized.value = true
   }
 
-  const findItem = (itemId: number) =>
-    items.value.find(i => i.id === itemId)
+  const findItem = (id: number) =>
+    items.value.find(i => i.id === id)
 
   // =============================
-  // FETCH (SSR-safe)
+  // FETCH
   // =============================
 
   const fetchCart = async () => {
@@ -65,7 +65,7 @@ export const useCartStore = defineStore('cart', () => {
     try {
       const res = await $api.get<CartResponse>('/cart/')
       setCart(res.data)
-    } catch (e) {
+    } catch {
       items.value = []
     } finally {
       loading.value = false
@@ -73,7 +73,7 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   // =============================
-  // ADD (Optimistic)
+  // ADD
   // =============================
 
   const addToCart = async (productId: number, quantity = 1) => {
@@ -83,7 +83,11 @@ export const useCartStore = defineStore('cart', () => {
       const existing = items.value.find(i => i.product === productId)
 
       if (existing) {
-        await updateQuantity(existing.id, existing.quantity + quantity)
+        const newQty = existing.quantity + quantity
+
+        if (newQty > existing.product_stock) return
+
+        await updateQuantity(existing.id, newQty)
         return
       }
 
@@ -92,9 +96,15 @@ export const useCartStore = defineStore('cart', () => {
         quantity
       })
 
-      // если backend не возвращает item → делаем fetch
       if (res.data?.id) {
-        items.value.push(res.data)
+        items.value.push({
+          id: res.data.id,
+          product: res.data.product,
+          product_name: res.data.product_name,
+          price: Number(res.data.price),
+          quantity: Number(res.data.quantity),
+          product_stock: Number(res.data.product_stock)
+        })
       } else {
         await fetchCart()
       }
@@ -105,22 +115,19 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   // =============================
-  // REMOVE (Optimistic)
+  // REMOVE
   // =============================
 
   const removeFromCart = async (itemId: number) => {
     const { $api } = useNuxtApp()
 
     const backup = [...items.value]
-
-    // optimistic remove
     items.value = items.value.filter(i => i.id !== itemId)
 
     try {
       await $api.delete(`/cart/remove/${itemId}/`)
     } catch (e) {
       items.value = backup
-      console.error('Remove failed', e)
     }
   }
 
@@ -132,26 +139,27 @@ export const useCartStore = defineStore('cart', () => {
     if (quantity < 1) return
 
     const { $api } = useNuxtApp()
-
     const item = findItem(itemId)
     if (!item) return
 
-    const oldQuantity = item.quantity
+    if (quantity > item.product_stock) return
 
-    // 🔥 Optimistic UI
-    item.quantity = quantity
+    const oldQuantity = item.quantity
+    item.quantity = quantity // optimistic
 
     try {
       await $api.patch(`/cart/update/${itemId}/`, { quantity })
-    } catch (e) {
-      // rollback если ошибка
-      item.quantity = oldQuantity
-      console.error('Update failed', e)
+    } catch (e: any) {
+      item.quantity = oldQuantity // rollback
+
+      if (e.response?.data?.detail) {
+        console.error(e.response.data.detail)
+      }
     }
   }
 
   // =============================
-  // CLEAR (local only)
+  // CLEAR
   // =============================
 
   const clearCartState = () => {
@@ -159,35 +167,36 @@ export const useCartStore = defineStore('cart', () => {
     initialized.value = false
   }
 
+  // =============================
+  // CHECKOUT
+  // =============================
+
   const checkout = async (addressId: number) => {
     const { $api } = useNuxtApp()
 
-    const res = await $api.post('/orders/checkout/', { address_id: addressId })
+    const res = await $api.post('/orders/checkout/', {
+      address_id: addressId
+    })
 
-    // Очистка корзины уже делается на сервере
     await fetchCart()
-
     return res.data
   }
 
   return {
-    // state
     items,
     loading,
     initialized,
 
-    // computed
     totalPrice,
     totalCount,
     isEmpty,
 
-    // methods
     fetchCart,
     addToCart,
-    setCart,
-    checkout,
-    removeFromCart,
     updateQuantity,
-    clearCartState
+    removeFromCart,
+    clearCartState,
+    checkout,
+    setCart
   }
 })

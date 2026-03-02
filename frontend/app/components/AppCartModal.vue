@@ -8,13 +8,13 @@ const modal = useCartModalStore()
 await cart.fetchCart()
 
 const increase = (item: any) => {
+  if (item.quantity >= item.product_stock) return
   cart.updateQuantity(item.id, item.quantity + 1)
 }
 
 const decrease = (item: any) => {
-  if (item.quantity > 1) {
-    cart.updateQuantity(item.id, item.quantity - 1)
-  }
+  if (item.quantity <= 1) return
+  cart.updateQuantity(item.id, item.quantity - 1)
 }
 
 const remove = (id: number) => {
@@ -33,7 +33,7 @@ const checkoutOrder = async () => {
     v-model:open="modal.isOpen"
     title="Корзина"
     description="Ваши товары"
-    class="max-w-2xl"
+    class="max-w-3xl"
   >
     <template #body>
       <div v-if="cart.isEmpty">
@@ -44,12 +44,12 @@ const checkoutOrder = async () => {
         />
       </div>
 
-      <div v-else class="space-y-5">
+      <div v-else class="space-y-6">
 
         <UCard
           v-for="item in cart.items"
           :key="item.id"
-          class="p-5"
+          class="p-6"
         >
           <div class="flex justify-between items-center">
 
@@ -60,30 +60,39 @@ const checkoutOrder = async () => {
               </h4>
 
               <p class="text-sm text-zinc-500">
-                ${{ item.price }}
+                ${{ Number(item.price).toFixed(2) }}
+              </p>
+
+              <p
+                v-if="item.quantity >= item.product_stock"
+                class="text-xs text-red-500"
+              >
+                Max stock reached
               </p>
             </div>
 
             <!-- CENTER QUANTITY -->
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-5">
 
               <UButton
-                size="sm"
+                size="lg"
                 variant="soft"
-                class="w-10 h-10 rounded-full text-lg font-bold"
+                class="w-12 h-12 rounded-full text-xl font-bold"
+                :disabled="item.quantity <= 1"
                 @click="decrease(item)"
               >
                 -
               </UButton>
 
-              <span class="w-8 text-center text-lg font-semibold">
+              <span class="w-10 text-center text-xl font-semibold">
                 {{ item.quantity }}
               </span>
 
               <UButton
-                size="sm"
+                size="lg"
                 variant="soft"
-                class="w-10 h-10 rounded-full text-lg font-bold"
+                class="w-12 h-12 rounded-full text-xl font-bold"
+                :disabled="item.quantity >= item.product_stock"
                 @click="increase(item)"
               >
                 +
@@ -92,10 +101,10 @@ const checkoutOrder = async () => {
             </div>
 
             <!-- RIGHT PRICE + REMOVE -->
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-5">
 
-              <span class="font-semibold text-primary text-lg">
-                ${{ (item.price * item.quantity).toFixed(2) }}
+              <span class="font-semibold text-primary text-xl">
+                ${{ (Number(item.price) * item.quantity).toFixed(2) }}
               </span>
 
               <UButton
@@ -111,12 +120,13 @@ const checkoutOrder = async () => {
           </div>
         </UCard>
 
+        <!-- TOTAL -->
         <div class="flex justify-between items-center pt-6 border-t">
-          <span class="text-lg font-semibold">
+          <span class="text-xl font-semibold">
             Итого:
           </span>
 
-          <span class="text-2xl font-bold text-primary">
+          <span class="text-3xl font-bold text-primary">
             ${{ cart.totalPrice.toFixed(2) }}
           </span>
         </div>
@@ -125,7 +135,7 @@ const checkoutOrder = async () => {
     </template>
 
     <template #footer>
-      <div class="flex gap-3 w-full">
+      <div class="flex gap-4 w-full">
         <UButton
           variant="ghost"
           block
@@ -136,6 +146,7 @@ const checkoutOrder = async () => {
 
         <UButton
           block
+          size="lg"
           :disabled="cart.isEmpty"
           @click="checkoutOrder"
         >

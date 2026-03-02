@@ -1,96 +1,97 @@
 <script setup lang="ts">
-const route = useRoute()
-const { $api } = useNuxtApp()
-const { pay } = usePayment()
+const route = useRoute();
+const { $api } = useNuxtApp();
+const { pay } = usePayment();
 
-const order = ref<any>(null)
-const error = ref(false)
-const paymentLoading = ref(false)
+const order = ref<any>(null);
+const error = ref(false);
+const paymentLoading = ref(false);
 
 const fetchOrder = async () => {
-  const res = await $api.get(`/orders/by-uuid/${route.params.uuid}/`)
-  order.value = res.data
-}
+  const res = await $api.get(`/orders/by-uuid/${route.params.uuid}/`);
+  order.value = res.data;
+};
 
 const handlePayment = async (method: "paypal" | "card" | "crypto") => {
   try {
-    paymentLoading.value = true
-    await pay(order.value.id, method)
-    await fetchOrder()
+    paymentLoading.value = true;
+    await pay(order.value.id, method);
+    await fetchOrder();
   } catch (e) {
-    console.error(e)
+    console.error(e);
   } finally {
-    paymentLoading.value = false
+    paymentLoading.value = false;
   }
-}
+};
 
 onMounted(async () => {
   try {
-    await fetchOrder()
+    await fetchOrder();
   } catch {
-    error.value = true
+    error.value = true;
   }
-})
+});
 
 // Вспомогательная функция для безопасного получения цены
 const getItemPrice = (item: any) => {
   // Проверьте возможные названия поля с ценой
-  return item.price || item.unit_price || item.product_price || 0
-}
+  return item.price || item.unit_price || item.product_price || 0;
+};
 
 const getItemTotal = (item: any) => {
-  const price = Number(getItemPrice(item))
-  const quantity = Number(item.quantity) || 1
-  return (price * quantity).toFixed(2)
-}
+  const price = Number(getItemPrice(item));
+  const quantity = Number(item.quantity) || 1;
+  return (price * quantity).toFixed(2);
+};
+
+// cancelling
+const cancelLoading = ref(false);
+
+const cancelOrder = async () => {
+  try {
+    cancelLoading.value = true;
+    await $api.post(`/orders/${order.value.uuid}/cancel/`);
+    await fetchOrder();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    cancelLoading.value = false;
+  }
+};
 </script>
 
 <template>
   <UContainer class="py-16">
+    <UAlert v-if="error" color="error" title="Failed to load order" />
 
-    <UAlert
-      v-if="error"
-      color="error"
-      title="Failed to load order"
-    />
-
-    <UCard
-      v-else-if="order"
-      class="max-w-3xl mx-auto p-8 space-y-8"
-    >
-
+    <UCard v-else-if="order" class="max-w-3xl mx-auto p-8 space-y-8">
       <!-- HEADER -->
       <div class="flex justify-between items-start">
-
         <div>
-          <h1 class="text-3xl font-bold mb-2">
-            🎉 Заказ создан
-          </h1>
+          <h1 class="text-3xl font-bold mb-2">🎉 Заказ создан</h1>
 
-          <p class="text-sm text-zinc-500">
-            UUID: {{ order.uuid }}
-          </p>
+          <p class="text-sm text-zinc-500">UUID: {{ order.uuid }}</p>
         </div>
 
         <UBadge
           size="lg"
-          :color="order.status === 'paid'
-            ? 'success'
-            : order.status === 'pending'
-            ? 'warning'
-            : 'neutral'"
+          :color="
+            order.status === 'paid'
+              ? 'success'
+              : order.status === 'pending'
+              ? 'warning'
+              : 'neutral'
+          "
           variant="soft"
         >
           {{ order.status }}
         </UBadge>
-
       </div>
 
       <USeparator />
 
       <!-- ITEMS -->
       <div class="space-y-4">
-
         <div
           v-for="item in order.items"
           :key="item.product_name || item.id"
@@ -108,11 +109,8 @@ const getItemTotal = (item: any) => {
             </p>
           </div>
 
-          <p class="font-semibold text-lg">
-            ${{ getItemTotal(item) }}
-          </p>
+          <p class="font-semibold text-lg">${{ getItemTotal(item) }}</p>
         </div>
-
       </div>
 
       <USeparator />
@@ -120,22 +118,26 @@ const getItemTotal = (item: any) => {
       <!-- TOTAL -->
       <div class="flex justify-between text-xl font-bold">
         <span>Total:</span>
-        <span class="text-primary">
-          ${{ Number(order.total_price).toFixed(2) }}
-        </span>
+        <span class="text-primary"> ${{ Number(order.total_price).toFixed(2) }} </span>
+      </div>
+
+      <!-- CANCELLING -->
+      <div v-if="['pending', 'paid'].includes(order.status)" class="pt-4">
+        <UButton
+          color="error"
+          variant="soft"
+          :loading="cancelLoading"
+          @click="cancelOrder"
+        >
+          Cancel Order
+        </UButton>
       </div>
 
       <!-- PAYMENT -->
-      <div
-        v-if="order.status === 'pending'"
-        class="pt-6 space-y-4"
-      >
-        <h3 class="text-lg font-semibold">
-          Оплатить заказ
-        </h3>
+      <div v-if="order.status === 'pending'" class="pt-6 space-y-4">
+        <h3 class="text-lg font-semibold">Оплатить заказ</h3>
 
         <div class="flex flex-wrap gap-3">
-
           <UButton
             icon="i-lucide-credit-card"
             size="lg"
@@ -164,11 +166,8 @@ const getItemTotal = (item: any) => {
           >
             Crypto
           </UButton>
-
         </div>
       </div>
-
     </UCard>
-
   </UContainer>
 </template>

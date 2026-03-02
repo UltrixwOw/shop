@@ -29,16 +29,33 @@ class AddToCartView(APIView):
         cart = request.user.cart
         product = Product.objects.get(id=product_id)
 
+        if quantity > product.stock:
+            return Response(
+                {"error": "Недостаточно товара на складе"},
+                status=400
+            )
+
         item, created = CartItem.objects.get_or_create(
             cart=cart,
             product=product
         )
 
-        if not created:
-            item.quantity += quantity
-            item.save()
+        if created:
+            item.quantity = quantity
+        else:
+            new_quantity = item.quantity + quantity
 
-        return Response({"status": "added"})
+            if new_quantity > product.stock:
+                return Response(
+                    {"error": "Недостаточно товара"},
+                    status=400
+                )
+
+            item.quantity = new_quantity
+
+        item.save()
+
+        return Response({"success": True})
 
 class RemoveCartItemView(APIView):
     permission_classes = [IsAuthenticated]
@@ -63,15 +80,21 @@ class UpdateCartItemView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, item_id):
-        quantity = request.data.get("quantity")
+        quantity = int(request.data.get("quantity", 1))
 
         item = CartItem.objects.filter(
             id=item_id,
             cart__user=request.user
-        ).first()
+        ).select_related("product").first()
 
         if not item:
             return Response({"error": "Not found"}, status=404)
+
+        if quantity > item.product.stock:
+            return Response(
+                {"error": "Недостаточно товара"},
+                status=400
+            )
 
         item.quantity = quantity
         item.save()

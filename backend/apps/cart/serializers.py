@@ -5,12 +5,34 @@ from apps.shop.models import Product
 
 class CartItemSerializer(serializers.ModelSerializer):
 
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    price = serializers.DecimalField(source="product.price", max_digits=10, decimal_places=2, read_only=True)
+    product_name = serializers.CharField(
+        source="product.name",
+        read_only=True
+    )
+
+    price = serializers.DecimalField(
+        source="product.price",
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+
+    # ✅ ВАЖНО — поле нужно объявить
+    product_stock = serializers.IntegerField(
+        source="product.stock",
+        read_only=True
+    )
 
     class Meta:
         model = CartItem
-        fields = ["id", "product", "product_name", "price", "quantity"]
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "price",
+            "quantity",
+            "product_stock",
+        ]
 
 
 class CartSerializer(serializers.ModelSerializer):
