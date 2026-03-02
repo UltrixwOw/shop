@@ -41,11 +41,9 @@ export const useProductsStore = defineStore('products', () => {
   // STOCK HELPERS
   // =============================
 
-  const updateStock = (productId: number, newStock: number) => {
+  const updateStock = (productId: number, stock: number) => {
     const product = items.value.find(p => p.id === productId)
-    if (product) {
-      product.stock = newStock
-    }
+    if (product) product.stock = stock
   }
 
   const decreaseStock = (productId: number, quantity: number) => {
@@ -62,6 +60,10 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
+  const $reset = () => {
+    items.value = []
+  }
+
   return {
     items,
     loading,
@@ -69,6 +71,7 @@ export const useProductsStore = defineStore('products', () => {
     fetchProducts,
     updateStock,
     decreaseStock,
-    increaseStock
+    increaseStock,
+    $reset
   }
 })

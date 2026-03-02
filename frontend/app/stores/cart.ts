@@ -182,6 +182,10 @@ export const useCartStore = defineStore('cart', () => {
     return res.data
   }
 
+  const $reset = () => {
+    items.value = []
+  }
+
   return {
     items,
     loading,
@@ -197,6 +201,7 @@ export const useCartStore = defineStore('cart', () => {
     removeFromCart,
     clearCartState,
     checkout,
-    setCart
+    setCart,
+    $reset
   }
 })

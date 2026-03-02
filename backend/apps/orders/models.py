@@ -7,6 +7,8 @@ from apps.addresses.models import Address
 from apps.shop.models import Product
 import uuid
 from django.core.exceptions import ValidationError
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 class Order(models.Model):
@@ -143,10 +145,23 @@ class Order(models.Model):
     # =========================
 
     def _restore_stock(self):
+        channel_layer = get_channel_layer()
+
         for item in self.items.select_related("product"):
             if item.product:
-                item.product.stock += item.quantity
-                item.product.save()
+                product = item.product
+                product.stock += item.quantity
+                product.save()
+
+                # 🔥 realtime update
+                async_to_sync(channel_layer.group_send)(
+                    "stock_updates",
+                    {
+                        "type": "stock_update",
+                        "product_id": product.id,
+                        "stock": product.stock,
+                    }
+                )
 
     # =========================
     # SOFT DELETE

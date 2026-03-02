@@ -7,6 +7,22 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 
+def broadcast_stock(product):
+    """
+    Отправка realtime обновления stock
+    """
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        "stock_updates",   # ⚠ ДОЛЖНО совпадать с consumer
+        {
+            "type": "stock_update",
+            "product_id": product.id,
+            "stock": product.stock,
+        }
+    )
+
+
 class OrderService:
 
     @staticmethod
@@ -16,7 +32,6 @@ class OrderService:
         if not cart:
             raise ValidationError("Cart not found")
 
-        # 🔒 Блокируем товары на время транзакции
         cart_items = (
             cart.items
             .select_related("product")
@@ -28,48 +43,30 @@ class OrderService:
 
         total = 0
 
-        # ==========================
-        # 1️⃣ Проверяем склад
-        # ==========================
+        # Проверяем склад
         for item in cart_items:
             if item.quantity > item.product.stock:
                 raise ValidationError(
                     f"{item.product.name} нет в нужном количестве"
                 )
 
-        # ==========================
-        # 2️⃣ Создаём заказ
-        # ==========================
         order = Order.objects.create(
             user=user,
             address=address,
             status="pending"
         )
 
-        # ==========================
-        # 3️⃣ Создаём OrderItems + уменьшаем склад
-        # ==========================
+        # Уменьшаем склад
         for item in cart_items:
 
             product = item.product
 
-            # уменьшаем остаток
             product.stock -= item.quantity
             product.save()
-            
-            # 🔥 отправляем websocket событие
-            channel_layer = get_channel_layer()
 
-            async_to_sync(channel_layer.group_send)(
-                "stock",
-                {
-                    "type": "stock_update",
-                    "product_id": product.id,
-                    "stock": product.stock,
-                }
-            )
+            # 🔥 realtime update
+            broadcast_stock(product)
 
-            # сохраняем цену на момент покупки
             OrderItem.objects.create(
                 order=order,
                 product=product,
@@ -80,15 +77,9 @@ class OrderService:
 
             total += product.price * item.quantity
 
-        # ==========================
-        # 4️⃣ Сохраняем итог
-        # ==========================
         order.total_price = total
         order.save()
 
-        # ==========================
-        # 5️⃣ Очищаем корзину
-        # ==========================
         cart_items.delete()
 
         return order

@@ -10,10 +10,14 @@ export default defineNuxtPlugin(() => {
   }
 
   ws.onmessage = (event) => {
-    const data = JSON.parse(event.data)
+    try {
+      const data = JSON.parse(event.data)
 
-    if (data.product_id && typeof data.stock === 'number') {
-      productsStore.updateStock(data.product_id, data.stock)
+      if (data.product_id && data.stock !== undefined) {
+        productsStore.updateStock(data.product_id, data.stock)
+      }
+    } catch (e) {
+      console.error("WS parse error", e)
     }
   }
 
