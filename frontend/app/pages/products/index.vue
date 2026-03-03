@@ -5,13 +5,11 @@ import { useProductPreviewModalStore } from '~/stores/productPreviewModal'
 const productsStore = useProductsStore()
 const previewModal = useProductPreviewModalStore()
 
-// ✅ SSR-safe
 const { data: products, pending } = await useAsyncData(
   'products',
   () => productsStore.fetchProducts()
 )
 
-// синхронизация store (если вдруг SSR)
 if (products.value) {
   productsStore.items = products.value
 }
@@ -28,6 +26,7 @@ const openPreview = (product: any) => {
       Products
     </h1>
 
+    <!-- Skeleton -->
     <div
       v-if="pending"
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -39,6 +38,7 @@ const openPreview = (product: any) => {
       />
     </div>
 
+    <!-- Products -->
     <div
       v-else
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -50,18 +50,30 @@ const openPreview = (product: any) => {
         @click="openPreview(product)"
       >
 
+        <!-- Image -->
         <div class="aspect-square overflow-hidden rounded-md mb-4">
-          <img
+          
+          <NuxtImg
             v-if="product.images?.length"
             :src="product.images[0].image"
+            :alt="product.name"
+            loading="lazy"
+            format="webp"
+            quality="80"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             class="w-full h-full object-cover hover:scale-105 transition"
           />
-          <div v-else class="w-full h-full">
-          <img
-            src="@/assets/images/productPreview.png"
+
+          <NuxtImg
+            v-else
+            src="/images/productPreview.png"
+            alt="Product placeholder"
+            loading="lazy"
+            format="webp"
+            quality="80"
             class="w-full h-full object-cover hover:scale-105 transition"
           />
-          </div>
+
         </div>
 
         <h3 class="text-lg font-semibold mb-2">
@@ -75,6 +87,7 @@ const openPreview = (product: any) => {
         <AppAddToCartButton
           :productId="product.id"
           :disabled="product.stock === 0"
+          class="relative z-10"
           @click.stop
         />
 

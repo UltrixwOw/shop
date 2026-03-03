@@ -12,7 +12,7 @@ export default defineNuxtConfig({
       apiBase: 'http://127.0.0.1:8000/api' // Django API
     }
   },
-  modules: ['@pinia/nuxt', '@nuxt/ui'],
+  modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxt/image'],
   pinia: {
     storesDirs: ['./app/stores/**'],   // важно для Nuxt 4
   },

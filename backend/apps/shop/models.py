@@ -1,5 +1,15 @@
 from django.db import models
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
+from django.db import transaction
 
+def validate_image_size(image):
+        max_size_mb = 5
+
+        if image.size > max_size_mb * 1024 * 1024:
+            raise ValidationError("Максимальный размер файла 5MB")
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -33,7 +43,80 @@ class ProductImage(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        related_name='images'
+        related_name="images"
     )
 
-    image = models.ImageField(upload_to='products/')
+    image = models.ImageField(
+        upload_to="products/%Y/%m/",
+        validators=[validate_image_size]
+    )
+    
+    thumbnail = models.ImageField(
+        upload_to="products/thumbnails/%Y/%m/",
+        blank=True,
+        null=True
+    )
+
+    is_main = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_main", "created_at"]
+        
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+
+            # =========================
+            # 1️⃣ Автоматический main image
+            # =========================
+            if not self.product.images.filter(is_main=True).exclude(id=self.id).exists():
+                self.is_main = True
+
+            # =========================
+            # 2️⃣ Если is_main=True — убрать у других
+            # =========================
+            if self.is_main:
+                self.product.images.filter(is_main=True).exclude(id=self.id).update(is_main=False)
+
+            # =========================
+            # 3️⃣ Оптимизация оригинала
+            # =========================
+            if self.image:
+                img = Image.open(self.image)
+
+                # уменьшаем оригинал до 1200px
+                img.thumbnail((1200, 1200), Image.LANCZOS)
+
+                buffer = BytesIO()
+                img.save(buffer, format="WEBP", quality=85)
+
+                file_name = self.image.name.split('.')[0] + ".webp"
+
+                self.image.save(
+                    file_name,
+                    ContentFile(buffer.getvalue()),
+                    save=False
+                )
+
+                # =========================
+                # 4️⃣ Генерация thumbnail 400px
+                # =========================
+                thumb = Image.open(BytesIO(buffer.getvalue()))
+                thumb.thumbnail((400, 400), Image.LANCZOS)
+
+                thumb_buffer = BytesIO()
+                thumb.save(thumb_buffer, format="WEBP", quality=80)
+
+                thumb_name = self.image.name.split('.')[0] + "_thumb.webp"
+
+                self.thumbnail.save(
+                    thumb_name,
+                    ContentFile(thumb_buffer.getvalue()),
+                    save=False
+                )
+
+            super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return f"Image for {self.product.name}"
