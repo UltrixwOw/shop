@@ -50,7 +50,7 @@ const add = async () => {
     loading
     disabled
   >
-    Loading
+    
   </UButton>
 
   <!-- OUT OF STOCK -->
@@ -71,6 +71,8 @@ const add = async () => {
     :loading="loading"
     :disabled="disabled || isInCart"
     :color="isInCart ? 'myPink' : 'primary'"
+    icon="i-heroicons-shopping-bag"
+    class="flex-row-reverse"
     @click="add"
   >
     <span v-if="isInCart">✓ In cart</span>

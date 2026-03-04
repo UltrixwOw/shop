@@ -2,14 +2,13 @@
 
 <template>
   <UApp>
-    <UMain>
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
-    </UMain>
 
     <AppAuthModal />
     <AppProductPreviewModal />
+    <AppImageLightbox />
     <AppCartModal />
   </UApp>
 </template>

@@ -1,26 +1,30 @@
 <script setup lang="ts">
 import { useProductPreviewModalStore } from "~/stores/productPreviewModal";
+import { useImgModalStore } from "~/stores/imgModal";
+import { computed } from "vue";
 
 const modal = useProductPreviewModalStore();
+const imgModal = useImgModalStore();
 
-const carousel = useTemplateRef("carousel");
-const activeIndex = ref(0);
+// Вычисляемый массив для карусели
+const carouselItems = computed(() => {
+  if (modal.product?.images?.length) {
+    return modal.product.images;
+  }
+  // Возвращаем массив объектов для совместимости
+  return [{ image: "/images/productPreview.png", isPlaceholder: true }];
+});
 
-function onClickPrev() {
-  activeIndex.value--;
-}
+function openLightbox(index: number) {
+  // Не открываем лайтбокс для плейсхолдера
+  if (carouselItems.value[index]?.isPlaceholder) return;
 
-function onClickNext() {
-  activeIndex.value++;
-}
-
-function onSelect(index: number) {
-  activeIndex.value = index;
-}
-
-function select(index: number) {
-  activeIndex.value = index;
-  carousel.value?.emblaApi?.scrollTo(index);
+  imgModal.open(
+    modal.product.images,
+    index,
+    modal.product.name,
+    modal.product.description
+  );
 }
 </script>
 
@@ -29,82 +33,36 @@ function select(index: number) {
     v-model:open="modal.isOpen"
     :title="modal.product?.name"
     :description="modal.product?.description"
-    :close="{
-      icon: 'i-heroicons-x-mark-20-solid',
-      color: 'neutral',
-      variant: 'ghost',
-    }"
-    class="max-w-3xl"
+    class="max-w-4xl"
   >
     <template #body>
-      <div v-if="modal.product" >
-        <!-- 🔥 Main Image Area (как в products.vue) -->
-        <div class="aspect-square overflow-hidden rounded-lg">
-          <UCarousel
-            v-if="modal.product.images?.length"
-            ref="carousel"
-            v-slot="{ item }"
-            arrows
-            :items="modal.product.images"
-            :prev="{ onClick: onClickPrev }"
-            :next="{ onClick: onClickNext }"
-            class="w-full "
-            @select="onSelect"
-          >
-            <NuxtImg
-              :src="item.image"
-              :alt="modal.product.name"
-              loading="lazy"
-              format="webp"
-              quality="90"
-              sizes="100vw"
-              class="w-full  object-cover rounded-lg"
-            />
-          </UCarousel>
+      <div v-if="modal.product" class="space-y-6">
+        <!-- Единая карусель -->
+        <UCarousel :items="carouselItems" :ui="{ item: 'basis-1/3' }" class="w-full">
+          <template #default="{ item, index }">
+            <div
+              class="aspect-square overflow-hidden rounded-lg"
+              :class="{ 'cursor-pointer': !item.isPlaceholder }"
+              @click="!item.isPlaceholder ? openLightbox(index) : null"
+            >
+              <NuxtImg
+                :src="item.image"
+                :alt="modal.product.name"
+                format="webp"
+                quality="80"
+                class="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </template>
+        </UCarousel>
 
-          <!-- Fallback -->
-          <NuxtImg
-            v-else
-            src="/images/productPreview.png"
-            alt="Product placeholder"
-            loading="lazy"
-            format="webp"
-            quality="80"
-            class="w-full  object-cover rounded-lg"
-          />
+        <div class="flex justify-between">
+          <p class="text-lg font-semibold text-primary">${{ modal.product.price }}</p>
+
+          <AppAddToCartButton :productId="modal.product.id" class="relative z-10 w-max" />
         </div>
-
-        <!-- 🔥 Thumbnails -->
-        <div v-if="modal.product.images?.length > 1" class="flex gap-2 justify-center">
-          <div
-            v-for="(item, index) in modal.product.images"
-            :key="item.id || index"
-            class="size-16 overflow-hidden rounded-md cursor-pointer transition-opacity"
-            :class="
-              activeIndex === index ? 'opacity-100' : 'opacity-40 hover:opacity-100'
-            "
-            @click="select(index)"
-          >
-            <NuxtImg
-              :src="item.image"
-              :alt="modal.product.name"
-              loading="lazy"
-              format="webp"
-              quality="70"
-              class="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-
       </div>
-    </template>
-    <template #footer>
-    <div class="space-y-2 w-full">
-      <p class="text-lg font-semibold text-primary">${{ modal.product.price }}</p>
-
-      <AppAddToCartButton :productId="modal.product.id" />
-    </div>
-      
     </template>
   </UModal>
 </template>
