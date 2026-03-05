@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+
 .container {
     margin: 0 auto;
 }
@@ -13,4 +14,18 @@
     --ui-info: var(--ui-color-info-500);
     --ui-warning: var(--ui-color-warning-500);
     --ui-error: var(--ui-color-error-500);
+}
+
+@theme static {
+  --color-myPink-50:  #fdf8f7;
+  --color-myPink-100: #fbeeed;
+  --color-myPink-200: #f7ddd9;
+  --color-myPink-300: #f2ccc5;
+  --color-myPink-400: #edc3bb;
+  --color-myPink-500: #ecb7b0;   /* ← твой оригинальный цвет */
+  --color-myPink-600: #e0a89f;
+  --color-myPink-700: #d4998e;
+  --color-myPink-800: #c7867a;
+  --color-myPink-900: #b57367;
+  --color-myPink-950: #a36154;
 }

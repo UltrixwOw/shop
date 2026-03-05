@@ -32,9 +32,14 @@ const openPreview = (product: any) => {
       <UCard
         v-for="product in productsStore.items"
         :key="product.id"
-        class="flex flex-col justify-between cursor-pointer hover:shadow-lg transition"
+        class="relative flex flex-col justify-between cursor-pointer hover:shadow-lg transition"
         @click="openPreview(product)"
       >
+        <!-- Wishlist -->
+        <div class="absolute top-2 right-2 z-20">
+          <AppAddToWishlistButton :productId="product.id" />
+        </div>
+
         <!-- Image -->
         <div class="aspect-square overflow-hidden rounded-md mb-4">
           <NuxtImg
@@ -65,7 +70,7 @@ const openPreview = (product: any) => {
           {{ product.name }}
         </h3>
 
-        <div class="flex justify-between"> 
+        <div class="flex justify-between">
           <p class="text-primary font-bold text-xl">${{ product.price }}</p>
 
           <AppAddToCartButton

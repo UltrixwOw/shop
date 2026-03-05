@@ -30,6 +30,8 @@ const modal = useAuthModalStore();
     <!-- RIGHT -->
     <template #right>
       <div class="flex items-center gap-1">
+        <AppWishlistButton />
+        
         <AppCartButton />
 
         <AppLoginButton />

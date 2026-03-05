@@ -3,7 +3,8 @@ export default defineAppConfig({
     colors: {
       primary: 'cyan',
       secondary: 'violet',
-      neutral: 'zinc'
+      neutral: 'zinc',
+      myPink: 'myPink'
     },
     chip: {
       slots: {

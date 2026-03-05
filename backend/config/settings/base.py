@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "channels",
     "apps.realtime",
+    "apps.wishlist",
 ]
 
 MIDDLEWARE = [
