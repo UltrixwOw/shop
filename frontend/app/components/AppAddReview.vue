@@ -1,116 +1,113 @@
 <script setup lang="ts">
-import { useReviewsStore } from "~/stores/reviews"
-import { useAuthStore } from "~/stores/auth"
+import { useReviewsStore } from "~/stores/reviews";
+import { useAuthStore } from "~/stores/auth";
 
 const props = defineProps<{
-  productId: number
-}>()
+  productId: number;
+}>();
 
-const reviews = useReviewsStore()
-const auth = useAuthStore()
+const reviews = useReviewsStore();
+const auth = useAuthStore();
 
-const rating = ref(5)
-const comment = ref("")
-const loading = ref(false)
+const rating = ref(5);
+const comment = ref("");
+const loading = ref(false);
 
-const { $api } = useNuxtApp()
-const toast = useToast()
+const { $api } = useNuxtApp();
+const toast = useToast();
 
 const submit = async () => {
   if (!comment.value.trim()) {
     toast.add({
       title: "Error",
       description: "Please write a comment",
-      color: "error"
-    })
-    return
+      color: "error",
+    });
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
 
   try {
     // Django ожидает JSON по умолчанию
     const payload = {
       product: props.productId,
       rating: rating.value,
-      comment: comment.value.trim()
-    }
-    
-    console.log('Sending payload:', payload)
+      comment: comment.value.trim(),
+    };
+
+    console.log("Sending payload:", payload);
 
     // Отправляем как JSON (Django REST Framework по умолчанию принимает JSON)
     const response = await $api.post("/reviews/", payload, {
       headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+        "Content-Type": "application/json",
+      },
+    });
 
-    console.log('Response:', response)
+    console.log("Response:", response);
 
     // Очищаем форму
-    comment.value = ""
-    rating.value = 5
+    comment.value = "";
+    rating.value = 5;
 
     toast.add({
       title: "Success",
       description: "Your review has been submitted",
-      color: "success"
-    })
+      color: "success",
+    });
 
     // Обновляем список отзывов
-    await reviews.fetchReviews(props.productId)
-
+    await reviews.fetchReviews(props.productId);
   } catch (error: any) {
-    console.error('Submit error:', error)
-    console.error('Error response:', error.response?.data)
-    
+    console.error("Submit error:", error);
+    console.error("Error response:", error.response?.data);
+
     // Показываем конкретную ошибку от Django
-    const errorData = error.response?.data
-    
-    let errorMessage = "Failed to submit review"
-    
-    if (typeof errorData === 'string') {
-      errorMessage = errorData
+    const errorData = error.response?.data;
+
+    let errorMessage = "Failed to submit review";
+
+    if (typeof errorData === "string") {
+      errorMessage = errorData;
     } else if (errorData?.detail) {
-      errorMessage = errorData.detail
+      errorMessage = errorData.detail;
     } else if (errorData?.message) {
-      errorMessage = errorData.message
-    } else if (errorData && typeof errorData === 'object') {
+      errorMessage = errorData.message;
+    } else if (errorData && typeof errorData === "object") {
       // Если ошибка валидации полей
-      const firstError = Object.values(errorData)[0]
-      errorMessage = Array.isArray(firstError) ? firstError[0] : String(firstError)
+      const firstError = Object.values(errorData)[0];
+      errorMessage = Array.isArray(firstError) ? firstError[0] : String(firstError);
     }
-    
+
     toast.add({
       title: "Error",
       description: errorMessage,
-      color: "error"
-    })
+      color: "error",
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Проверяем, может пользователь уже оставил отзыв
 const hasUserReview = computed(() => {
-  return reviews.items?.some((r: any) => r.is_mine) ?? false
-})
+  return reviews.items?.some((r: any) => r.is_mine) ?? false;
+});
 
 // Проверяем, может пользователь купил товар (опционально)
 const canReview = computed(() => {
   // Если пользователь уже оставил отзыв, то нельзя
-  if (hasUserReview.value) return false
-  
+  if (hasUserReview.value) return false;
+
   // Здесь можно добавить проверку покупки через отдельный эндпоинт
-  return true
-})
+  return true;
+});
 </script>
 
 <template>
   <div v-if="auth.isAuthenticated" class="space-y-4 pt-4">
-    <div class="font-semibold">
-      Leave a review
-    </div>
+    <div class="font-semibold text-gray-500">Leave a review</div>
 
     <!-- Предупреждение, если уже оставил отзыв -->
     <UAlert
@@ -120,6 +117,7 @@ const canReview = computed(() => {
       title="You have already reviewed this product"
       description="You can only leave one review per product"
       icon="i-lucide-lightbulb"
+      class="text-gray-500"
     />
 
     <template v-else>
@@ -142,12 +140,13 @@ const canReview = computed(() => {
         :rows="4"
         :maxlength="500"
         :disabled="loading"
+        :ui="{
+          root: 'w-full',
+        }"
       />
 
       <div class="flex justify-between items-center">
-        <span class="text-xs text-gray-500">
-          {{ comment.length }}/500
-        </span>
+        <span class="text-xs text-gray-500"> {{ comment.length }}/500 </span>
 
         <UButton
           :loading="loading"
@@ -161,10 +160,8 @@ const canReview = computed(() => {
     </template>
   </div>
 
-  <div v-else class="text-sm text-gray-500 pt-4 border-t border-gray-200">
-    <NuxtLink to="/login" class="text-primary hover:underline">
-      Login
-    </NuxtLink>
-    to leave a review
+  <div v-else class="flex items-center text-sm text-gray-400 pt-4">
+    <AppLoginButton />
+    <span class="ml-1">to leave a review</span>
   </div>
 </template>

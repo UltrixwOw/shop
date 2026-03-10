@@ -63,6 +63,8 @@ function openLightbox(index: number) {
           <AppProductReviews :productId="modal.product.id" />
         </div>
 
+        <USeparator />
+
         <div class="flex justify-between">
           <p class="text-lg font-semibold text-primary">${{ modal.product.price }}</p>
 

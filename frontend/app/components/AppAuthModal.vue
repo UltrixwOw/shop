@@ -105,7 +105,10 @@ const modalDescription = computed(() => {
       color: 'neutral',
       variant: 'ghost'
     }"
-    class="max-w-md"
+    class="max-w-md z-50"
+    :ui="{
+      overlay: 'z-45',
+    }"
   >
     <template #body>
       <!-- ЛОГИН -->

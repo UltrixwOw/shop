@@ -4,56 +4,88 @@ definePageMeta({
   title: 'О нас'
 })
 
-// Команда компании (можно заменить на реальные данные из API)
+// Ссылки для PageHero
+const heroLinks = ref([
+  {
+    label: 'Наши товары',
+    to: '/products',
+    icon: 'i-heroicons-shopping-bag',
+    color: 'primary' as const,
+    size: 'lg' as const
+  },
+  {
+    label: 'Связаться с нами',
+    to: '#contact',
+    color: 'neutral' as const,
+    variant: 'subtle' as const,
+    trailingIcon: 'i-heroicons-arrow-right',
+    size: 'lg' as const
+  }
+])
+
+// Команда компании с надежными изображениями
 const teamMembers = ref([
   {
     name: 'Анна Смирнова',
     role: 'Основатель & CEO',
-    bio: 'Более 10 лет в e-commerce, создаёт уникальные shopping-экспериенсы',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop',
-    social: {
-      linkedin: '#',
-      twitter: '#'
+    description: 'Более 10 лет в e-commerce, создаёт уникальные shopping-экспериенсы',
+    // Используем picsum для надежности
+    avatar: {
+      src: 'https://picsum.photos/id/64/400/400', // мужчина в очках
+      alt: 'Анна Смирнова'
     }
   },
   {
     name: 'Михаил Волков',
     role: 'Art Director',
-    bio: 'Отвечает за визуальный стиль и пользовательский опыт бренда',
-    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop',
-    social: {
-      linkedin: '#',
-      instagram: '#'
+    description: 'Отвечает за визуальный стиль и пользовательский опыт бренда',
+    avatar: {
+      src: 'https://picsum.photos/id/1005/400/400', // мужчина с бородой
+      alt: 'Михаил Волков'
     }
   },
   {
     name: 'Екатерина Павлова',
     role: 'Head of Product',
-    bio: 'Разрабатывает стратегию развития ассортимента',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop',
-    social: {
-      linkedin: '#',
-      twitter: '#'
+    description: 'Разрабатывает стратегию развития ассортимента',
+    avatar: {
+      src: 'https://picsum.photos/id/1027/400/400', // девушка в очках
+      alt: 'Екатерина Павлова'
     }
   },
   {
     name: 'Дмитрий Соколов',
     role: 'Технический директор',
-    bio: 'Обеспечивает бесперебойную работу платформы',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-    social: {
-      github: '#',
-      linkedin: '#'
+    description: 'Обеспечивает бесперебойную работу платформы',
+    avatar: {
+      src: 'https://picsum.photos/id/1043/400/400', // мужчина в шапке
+      alt: 'Дмитрий Соколов'
     }
   }
 ])
 
 // Статистика компании
 const stats = ref([
-  { value: '5K+', label: 'Довольных клиентов', icon: 'i-heroicons-users' },
-  { value: '10K+', label: 'Товаров в каталоге', icon: 'i-heroicons-cube' },
-  { value: '15+', label: 'Стран доставки', icon: 'i-heroicons-globe-alt' },
-  { value: '24/7', label: 'Поддержка', icon: 'i-heroicons-chat-bubble-left-right' }
+  { 
+    label: 'Довольных клиентов', 
+    value: '5K+', 
+    icon: 'i-heroicons-users' 
+  },
+  { 
+    label: 'Товаров в каталоге', 
+    value: '10K+', 
+    icon: 'i-heroicons-cube' 
+  },
+  { 
+    label: 'Стран доставки', 
+    value: '15+', 
+    icon: 'i-heroicons-globe-alt' 
+  },
+  { 
+    label: 'Поддержка', 
+    value: '24/7', 
+    icon: 'i-heroicons-chat-bubble-left-right' 
+  }
 ])
 
 // Ценности компании
@@ -79,245 +111,282 @@ const values = ref([
     icon: 'i-heroicons-heart'
   }
 ])
+
+// Социальные сети
+const socialLinks = ref([
+  { icon: 'i-heroicons-envelope', to: 'mailto:hello@meloni.com', label: 'Email' },
+  { icon: 'i-simple-icons-instagram', to: 'https://instagram.com/meloni', label: 'Instagram' },
+  { icon: 'i-simple-icons-telegram', to: 'https://t.me/meloni', label: 'Telegram' },
+  { icon: 'i-simple-icons-youtube', to: 'https://youtube.com/@meloni', label: 'YouTube' },
+  { icon: 'i-simple-icons-facebook', to: 'https://facebook.com/meloni', label: 'Facebook' }
+])
+
+// Альтернативный вариант с инициалами (если изображения не нужны)
+const teamMembersWithInitials = ref([
+  {
+    name: 'Анна Смирнова',
+    role: 'Основатель & CEO',
+    description: 'Более 10 лет в e-commerce, создаёт уникальные shopping-экспериенсы',
+    avatar: {
+      text: 'АС', // инициалы
+      alt: 'Анна Смирнова'
+    }
+  },
+  {
+    name: 'Михаил Волков',
+    role: 'Art Director',
+    description: 'Отвечает за визуальный стиль и пользовательский опыт бренда',
+    avatar: {
+      text: 'МВ',
+      alt: 'Михаил Волков'
+    }
+  },
+  {
+    name: 'Екатерина Павлова',
+    role: 'Head of Product',
+    description: 'Разрабатывает стратегию развития ассортимента',
+    avatar: {
+      text: 'ЕП',
+      alt: 'Екатерина Павлова'
+    }
+  },
+  {
+    name: 'Дмитрий Соколов',
+    role: 'Технический директор',
+    description: 'Обеспечивает бесперебойную работу платформы',
+    avatar: {
+      text: 'ДС',
+      alt: 'Дмитрий Соколов'
+    }
+  }
+])
 </script>
 
 <template>
-  <UContainer class="py-12">
-    <!-- Хлебные крошки -->
-    <UBreadcrumb
-      :items="[
-        { label: 'Главная', to: '/' },
-        { label: 'О нас', to: '/about' }
-      ]"
-      class="mb-8"
-    />
-
-    <!-- Герой-секция с параллакс эффектом -->
-    <div class="relative rounded-3xl overflow-hidden mb-16 h-[400px] md:h-[500px]">
+  <main>
+    <!-- PageHero компонент -->
+    <UPageHero
+      orientation="horizontal"
+      headline="Добро пожаловать в онлайн-магазин Meloni"
+      title="Мы создаём лучший шопинг-опыт"
+      description="История бренда, который начался с мечты сделать онлайн-покупки проще, приятнее и доступнее для каждого."
+      :links="heroLinks"
+    >
+      <!-- Изображение для правой части -->
       <img
-        src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=900&fit=crop"
+        src="https://picsum.photos/id/42/800/600"
         alt="О нас"
-        class="absolute inset-0 w-full h-full object-cover"
+        class="rounded-2xl shadow-2xl ring ring-default w-full h-auto"
+        width="800"
+        height="600"
+        loading="lazy"
       />
-      <div class="absolute inset-0 bg-gradient-to-r from-primary-900/90 to-primary-800/80" />
-      
-      <div class="absolute inset-0 flex items-center">
-        <div class="px-8 md:px-12 text-white max-w-3xl">
-          <UBadge color="white" variant="soft" size="lg" class="mb-4">
-            Добро пожаловать в Meloni
-          </UBadge>
-          
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            Мы создаём<br />лучший шопинг-опыт
-          </h1>
-          
-          <p class="text-xl text-white/80">
-            История бренда, который начался с мечты сделать онлайн-покупки проще, 
-            приятнее и доступнее для каждого.
-          </p>
-        </div>
-      </div>
-    </div>
+    </UPageHero>
 
-    <!-- Наша история -->
-    <div class="grid lg:grid-cols-2 gap-12 items-center mb-20">
-      <div>
-        <h2 class="text-3xl font-bold mb-4">Наша история</h2>
-        <div class="space-y-4 text-gray-600 dark:text-gray-400">
-          <p>
-            Meloni родился в 2020 году из простой идеи: сделать онлайн-шопинг 
-            таким же приятным, как прогулка по любимому бутику. Мы заметили, 
-            что многие платформы забывают о человеческом подходе, превращая 
-            покупки в бездушный процесс.
-          </p>
-          <p>
-            За четыре года мы выросли из небольшого стартапа в международную 
-            платформу, но не потеряли главного — внимания к каждому клиенту. 
-            Сегодня Meloni — это сообщество людей, объединённых любовью к 
-            качественным вещам и отличному сервису.
-          </p>
-          <p>
-            Мы гордимся тем, что 80% наших клиентов возвращаются снова, а 
-            многие становятся нашими друзьями. И это только начало!
-          </p>
-        </div>
-      </div>
-      
+    <!-- PageSection - Наша история -->
+    <UPageSection
+      orientation="horizontal"
+      reverse
+      title="Наша история"
+      description="Meloni родился в 2020 году из простой идеи: сделать онлайн-шопинг таким же приятным, как прогулка по любимому бутику. Мы заметили, что многие платформы забывают о человеческом подходе, превращая покупки в бездушный процесс."
+      headline="О НАС"
+      icon="i-heroicons-clock"
+    >
+      <!-- Галерея изображений в правой части -->
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-4">
           <img
-            src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop"
+            src="https://picsum.photos/id/26/400/300"
             alt="Склад"
-            class="rounded-2xl h-48 w-full object-cover"
+            class="rounded-2xl w-full h-48 object-cover ring ring-default"
           />
           <img
-            src="https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400&h=300&fit=crop"
+            src="https://picsum.photos/id/27/400/300"
             alt="Упаковка"
-            class="rounded-2xl h-40 w-full object-cover"
+            class="rounded-2xl w-full h-40 object-cover ring ring-default"
           />
         </div>
         <div class="space-y-4 mt-8">
           <img
-            src="https://images.unsplash.com/photo-1603252110971-4a48c3677be8?w=400&h=300&fit=crop"
+            src="https://picsum.photos/id/28/400/300"
             alt="Команда"
-            class="rounded-2xl h-40 w-full object-cover"
+            class="rounded-2xl w-full h-40 object-cover ring ring-default"
           />
           <img
-            src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=400&h=300&fit=crop"
+            src="https://picsum.photos/id/29/400/300"
             alt="Магазин"
-            class="rounded-2xl h-48 w-full object-cover"
+            class="rounded-2xl w-full h-48 object-cover ring ring-default"
           />
         </div>
       </div>
-    </div>
+    </UPageSection>
 
-    <!-- Статистика -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
-      <UCard
-        v-for="stat in stats"
-        :key="stat.label"
-        class="text-center hover:shadow-lg transition-shadow"
-      >
-        <UIcon :name="stat.icon" class="w-8 h-8 text-primary-600 mx-auto mb-2" />
-        <p class="text-3xl font-bold text-primary-600">{{ stat.value }}</p>
-        <p class="text-sm text-gray-600 dark:text-gray-400">{{ stat.label }}</p>
-      </UCard>
-    </div>
+    <!-- PageSection - Статистика -->
+    <UPageSection
+      title="Meloni в цифрах"
+      description="Мы гордимся тем, что 80% наших клиентов возвращаются снова, а многие становятся нашими друзьями."
+      headline="СТАТИСТИКА"
+      icon="i-heroicons-chart-bar"
+    >
+      <!-- PageGrid для статистики -->
+      <UPageGrid>
+        <UCard
+          v-for="stat in stats"
+          :key="stat.label"
+          class="text-center"
+        >
+          <UIcon :name="stat.icon" class="w-8 h-8 text-primary mx-auto mb-2" />
+          <p class="text-3xl font-bold text-primary">{{ stat.value }}</p>
+          <p class="text-sm text-muted">{{ stat.label }}</p>
+        </UCard>
+      </UPageGrid>
+    </UPageSection>
 
-    <!-- Наши ценности -->
-    <div class="mb-20">
-      <h2 class="text-3xl font-bold text-center mb-12">Наши ценности</h2>
-      
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- PageSection - Наши ценности -->
+    <UPageSection
+      title="Наши ценности"
+      description="Четыре принципа, которые делают Meloni особенным"
+      headline="ЦЕННОСТИ"
+      icon="i-heroicons-heart"
+    >
+      <!-- PageGrid для ценностей -->
+      <UPageGrid>
         <UCard
           v-for="value in values"
           :key="value.title"
-          class="text-center hover:scale-105 transition-transform"
+          class="text-center"
         >
-          <template #header>
-            <div class="flex justify-center">
-              <div class="p-3 bg-primary-100 dark:bg-primary-900 rounded-full">
-                <UIcon :name="value.icon" class="w-6 h-6 text-primary-600 dark:text-primary-400" />
-              </div>
+          <div class="flex justify-center mb-4">
+            <div class="p-3 bg-primary/10 rounded-full">
+              <UIcon :name="value.icon" class="flex w-6 h-6 text-primary" />
             </div>
-          </template>
-          
+          </div>
           <h3 class="text-lg font-semibold mb-2">{{ value.title }}</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ value.description }}</p>
+          <p class="text-sm text-muted">{{ value.description }}</p>
         </UCard>
-      </div>
-    </div>
+      </UPageGrid>
+    </UPageSection>
 
-    <!-- Команда -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold mb-4">Команда мечты</h2>
-        <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          За каждым успешным заказом стоят талантливые люди, которые делают Meloni особенным
-        </p>
-      </div>
-
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- PageSection - Команда с picsum изображениями -->
+    <UPageSection
+      title="Команда мечты"
+      description="За каждым успешным заказом стоят талантливые люди, которые делают Meloni особенным"
+      headline="КТО МЫ"
+      icon="i-heroicons-users"
+    >
+      <!-- PageGrid для команды -->
+      <UPageGrid>
         <UCard
           v-for="member in teamMembers"
           :key="member.name"
           class="text-center"
         >
           <UAvatar
-            :src="member.avatar"
-            :alt="member.name"
+            v-bind="member.avatar"
             size="xl"
             class="mx-auto mb-4"
           />
           
           <h3 class="font-semibold text-lg">{{ member.name }}</h3>
-          <p class="text-sm text-primary-600 mb-2">{{ member.role }}</p>
-          <p class="text-xs text-gray-500 mb-4">{{ member.bio }}</p>
+          <p class="text-sm text-primary mb-2">{{ member.role }}</p>
+          <p class="text-xs text-muted mb-4">{{ member.description }}</p>
+        </UCard>
+      </UPageGrid>
+    </UPageSection>
+
+    <!-- Альтернативный вариант с инициалами (раскомментируйте если нужно) -->
+    <!-- <UPageSection
+      title="Команда мечты"
+      description="За каждым успешным заказом стоят талантливые люди, которые делают Meloni особенным"
+      headline="КТО МЫ"
+      icon="i-heroicons-users"
+    >
+      <UPageGrid>
+        <UCard
+          v-for="member in teamMembersWithInitials"
+          :key="member.name"
+          class="text-center"
+        >
+          <UAvatar
+            v-bind="member.avatar"
+            size="xl"
+            class="mx-auto mb-4"
+          />
           
-          <div class="flex justify-center gap-2">
-            <UButton
-              v-for="(url, platform) in member.social"
-              :key="platform"
-              :to="url"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              :icon="`i-heroicons-${platform}`"
-              target="_blank"
-            />
+          <h3 class="font-semibold text-lg">{{ member.name }}</h3>
+          <p class="text-sm text-primary mb-2">{{ member.role }}</p>
+          <p class="text-xs text-muted mb-4">{{ member.description }}</p>
+        </UCard>
+      </UPageGrid>
+    </UPageSection> -->
+
+    <!-- PageSection - Контакты -->
+    <UPageSection
+      id="contact"
+      title="Свяжитесь с нами"
+      description="Мы всегда рады помочь и ответить на ваши вопросы"
+      headline="КОНТАКТЫ"
+      icon="i-heroicons-chat-bubble-left-right"
+    >
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Контактная информация -->
+        <UCard>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <UIcon name="i-heroicons-map-pin" class="w-5 h-5 text-primary shrink-0" />
+              <span class="text-muted">Alexanderplatz 1, 10178 Berlin, Германия</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <UIcon name="i-heroicons-phone" class="w-5 h-5 text-primary shrink-0" />
+              <a href="tel:+49301234567" class="text-muted hover:text-primary transition-colors">
+                +49 30 1234567
+              </a>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <UIcon name="i-heroicons-envelope" class="w-5 h-5 text-primary shrink-0" />
+              <a href="mailto:hello@meloni.com" class="text-muted hover:text-primary transition-colors">
+                hello@meloni.com
+              </a>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary shrink-0" />
+              <span class="text-muted">Пн-Пт: 9:00 - 20:00, Сб-Вс: 10:00 - 18:00</span>
+            </div>
+
+            <USeparator class="my-4" />
+
+            <!-- Социальные сети -->
+            <div class="flex gap-2">
+              <UButton
+                v-for="social in socialLinks"
+                :key="social.label"
+                :icon="social.icon"
+                :to="social.to"
+                color="neutral"
+                variant="soft"
+                target="_blank"
+                :aria-label="social.label"
+              />
+            </div>
           </div>
         </UCard>
+
+        <!-- Карта -->
+        <UCard class="p-0 overflow-hidden">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2427.234567890123!2d13.4123!3d52.5200!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a84e123456789%3A0x1234567890abcdef!2sAlexanderplatz%2C%2010178%20Berlin!5e0!3m2!1sru!2sde!4v1620000000000!5m2!1sru!2sde"
+            width="100%"
+            height="300"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+            class="w-full h-full min-h-[300px] rounded-md"
+          />
+        </UCard>
       </div>
-    </div>
-
-    <!-- Контакты и карта -->
-    <div class="grid lg:grid-cols-2 gap-8">
-      <UCard>
-        <template #header>
-          <h3 class="text-xl font-semibold">Свяжитесь с нами</h3>
-        </template>
-
-        <div class="space-y-4">
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-map-pin" class="w-5 h-5 text-primary-600" />
-            <span>ул. Тверская, 15, Москва, 123456</span>
-          </div>
-          
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-phone" class="w-5 h-5 text-primary-600" />
-            <a href="tel:+74951234567" class="hover:text-primary-600">+7 (495) 123-45-67</a>
-          </div>
-          
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-envelope" class="w-5 h-5 text-primary-600" />
-            <a href="mailto:hello@meloni.com" class="hover:text-primary-600">hello@meloni.com</a>
-          </div>
-          
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary-600" />
-            <span>Пн-Пт: 9:00 - 20:00, Сб-Вс: 10:00 - 18:00</span>
-          </div>
-
-          <USeparator class="my-4" />
-
-          <div class="flex gap-2">
-            <UButton
-              v-for="social in ['instagram', 'telegram', 'youtube', 'facebook']"
-              :key="social"
-              :icon="`i-heroicons-${social}`"
-              color="neutral"
-              variant="soft"
-              to="#"
-              target="_blank"
-            />
-          </div>
-        </div>
-      </UCard>
-
-      <UCard>
-        <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2245.287548782147!2d37.6036!3d55.7623!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNTXCsDQ1JzQ0LjMiTiAzN8KwMzYnMTIuOSJF!5e0!3m2!1sru!2sru!4v1620000000000!5m2!1sru!2sru"
-          width="100%"
-          height="300"
-          style="border:0;"
-          allowfullscreen=""
-          loading="lazy"
-          class="rounded-lg"
-        />
-      </UCard>
-    </div>
-  </UContainer>
+    </UPageSection>
+  </main>
 </template>
-
-<style scoped>
-/* Плавное появление элементов */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

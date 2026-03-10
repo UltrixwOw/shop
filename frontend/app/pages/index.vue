@@ -42,7 +42,7 @@ const cards = ref([
   <UContainer>
     <div>
       <UPageHero
-        title="Добро пожаловать к Meloni"
+        title="Meloni приветствует"
         description="Откройте для себя уникальные товары и наслаждайтесь удобным шопингом с доставкой по всему миру."
         :links="links"
       />

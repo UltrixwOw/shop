@@ -5,12 +5,25 @@ import { useProductPreviewModalStore } from "~/stores/productPreviewModal";
 const productsStore = useProductsStore();
 const previewModal = useProductPreviewModalStore();
 
-const { data: products, pending } = await useAsyncData("products", () =>
-  productsStore.fetchProducts()
-);
+// Состояния загрузки как в wishlist
+const loading = ref(true)
+const error = ref<string | null>(null)
 
-if (products.value) {
-  productsStore.items = products.value;
+// Загружаем данные
+onMounted(async () => {
+  try {
+    await productsStore.fetchProducts()
+  } catch (err) {
+    error.value = 'Failed to load products'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+})
+
+// Для SSR - загружаем данные на сервере
+if (import.meta.server) {
+  await productsStore.fetchProducts()
 }
 
 const openPreview = (product: any) => {
@@ -22,13 +35,30 @@ const openPreview = (product: any) => {
   <div class="max-w-7xl mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold mb-8">Products</h1>
 
-    <!-- Skeleton -->
-    <div v-if="pending" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <USkeleton v-for="n in 6" :key="n" class="h-72 rounded-xl" />
+    <!-- Состояние загрузки - как в wishlist -->
+    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <USkeleton v-for="n in 3" :key="n" class="h-96 rounded-lg" />
     </div>
 
-    <!-- Products -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Ошибка - как в wishlist -->
+    <div v-else-if="error" class="text-red-500 text-center py-10">
+      {{ error }}
+    </div>
+
+    <!-- Пустой список - как в wishlist -->
+    <div
+      v-else-if="!productsStore.items.length"
+      class="text-gray-500 text-center py-10"
+    >
+      <UIcon name="i-heroicons-shopping-bag" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
+      <p class="text-lg">No products available.</p>
+    </div>
+
+    <!-- Products - как в wishlist -->
+    <div
+      v-else
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
       <UCard
         v-for="product in productsStore.items"
         :key="product.id"
@@ -36,7 +66,7 @@ const openPreview = (product: any) => {
         @click="openPreview(product)"
       >
         <!-- Wishlist -->
-        <div class="absolute top-2 right-2 z-20">
+        <div class="absolute top-2 right-2 z-20" @click.stop>
           <AppAddToWishlistButton :productId="product.id" />
         </div>
 
@@ -77,7 +107,7 @@ const openPreview = (product: any) => {
           />
         </div>
 
-        <div class="flex justify-between">
+        <div class="flex justify-between items-center mt-4">
           <p class="text-primary font-bold text-xl">${{ product.price }}</p>
 
           <AppAddToCartButton

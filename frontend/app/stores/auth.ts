@@ -41,10 +41,25 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = token
   }
 
-  const fetchUser = async () => {
-    const { $api } = useNuxtApp()
-    const res = await $api.get('/users/me/')
-    user.value = res.data
+  // 🔧 ИСПРАВЛЕНО: может принимать api как параметр, но не обязательно
+  const fetchUser = async (api?: any) => {
+    try {
+      // Используем переданный api или получаем из контекста
+      let $api
+      if (api) {
+        $api = api
+      } else {
+        const nuxtApp = useNuxtApp()
+        $api = nuxtApp.$api
+      }
+      
+      const res = await $api.get('/users/me/')
+      user.value = res.data
+      return res.data
+    } catch (error) {
+      console.error('Fetch user error:', error)
+      throw error
+    }
   }
 
   const refresh = async () => {

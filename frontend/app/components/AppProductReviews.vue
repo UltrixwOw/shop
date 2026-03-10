@@ -137,7 +137,7 @@ const selectedSort = computed({
           {{ review.comment }}
         </p>
 
-        <div class="flex items-center justify-between mt-4">
+        <div class="flex items-center justify-end mt-4">
           <!-- Like -->
           <UButton
             size="xs"
