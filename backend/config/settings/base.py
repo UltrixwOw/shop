@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "channels",
     "apps.realtime",
     "apps.wishlist",
+    "apps.reviews",
 ]
 
 MIDDLEWARE = [

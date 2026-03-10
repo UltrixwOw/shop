@@ -4,6 +4,7 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Avg
 
 def validate_image_size(image):
         max_size_mb = 5
@@ -38,6 +39,14 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+    
+    @property
+    def rating(self):
+        return self.reviews.filter(
+            is_approved=True
+        ).aggregate(
+            Avg("rating")
+        )["rating__avg"]
 
 class ProductImage(models.Model):
     product = models.ForeignKey(

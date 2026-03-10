@@ -8,6 +8,9 @@ interface Product {
   price: string
   stock: number
   images: { image: string }[]
+
+  average_rating?: number
+  reviews_count?: number
 }
 
 export const useProductsStore = defineStore('products', () => {

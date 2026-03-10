@@ -1,49 +1,51 @@
-# shop/views.py
+# apps/shop/views.py
+
 from rest_framework import viewsets
+from django.core.cache import cache
+from django.db.models import Avg, Count, Q, Exists, OuterRef
+from apps.reviews.models import Review
+
 from .models import Product
 from .serializers import ProductSerializer
 from core.permissions import IsAdminOrReadOnly
-from django.core.cache import cache
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAdminOrReadOnly]
     serializer_class = ProductSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
-        cache_key = "products_list"
-        products = cache.get(cache_key)
 
-        if products:
-            return products
+        user = self.request.user
 
-        if self.request.user.is_staff:
-            queryset = Product.objects.all()
-        else:
-            queryset = Product.objects.filter(is_active=True)
+        qs = Product.objects.filter(is_active=True).prefetch_related("images")
 
-        cache.set(cache_key, queryset, timeout=300)
-        return queryset
+        qs = qs.annotate(
+            average_rating=Avg(
+                "reviews__rating",
+                filter=Q(reviews__is_approved=True)
+            ),
+            reviews_count=Count(
+                "reviews",
+                filter=Q(reviews__is_approved=True)
+            )
+        )
+
+        if user.is_authenticated:
+            qs = qs.annotate(
+                user_has_review=Exists(
+                    Review.objects.filter(
+                        product=OuterRef("pk"),
+                        user=user
+                    )
+                )
+            )
+
+        return qs
 
     def perform_destroy(self, instance):
         instance.is_active = False
         instance.save()
+
         cache.delete("products_list")
-
-    def get_queryset(self):
-
-        cache_key = "products_list"
-
-        products = cache.get(cache_key)
-
-        if not products:
-            products = Product.objects.filter(is_active=True)
-            cache.set(cache_key, products, timeout=300)  # 5 минут
-
-        return products
-
-
-    def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
-        cache.delete("products_list")
+        cache.delete("products_list_admin")

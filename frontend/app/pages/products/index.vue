@@ -70,6 +70,13 @@ const openPreview = (product: any) => {
           {{ product.name }}
         </h3>
 
+        <div>
+          <AppRatingView
+            :rating="Number(product.average_rating || 0)"
+            :count="product.reviews_count || 0"
+          />
+        </div>
+
         <div class="flex justify-between">
           <p class="text-primary font-bold text-xl">${{ product.price }}</p>
 

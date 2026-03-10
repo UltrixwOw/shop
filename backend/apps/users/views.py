@@ -191,6 +191,7 @@ class MeView(APIView):
         return Response({
             "id": user.id,
             "email": user.email,
+            "username": user.username,  # Добавляем username
             "role": getattr(user, "role", "customer"),
             "is_verified": user.is_verified,
         })

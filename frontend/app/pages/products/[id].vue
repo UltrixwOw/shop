@@ -14,26 +14,37 @@ const { data: product, error } = await useAsyncData(
 </script>
 
 <template>
-  <div v-if="error">
-    <h2>Product not found</h2>
-  </div>
-
-  <div v-else-if="product">
-    <h1>{{ product.name }}</h1>
-
-    <div v-if="product.images?.length">
-      <img
-        v-for="img in product.images"
-        :key="img.image"
-        :src="img.image"
-        style="max-width: 300px;"
-      />
+  <UContainer>
+    <div v-if="error" class="py-8">
+      <h2 class="text-2xl font-semibold text-gray-900">Product not found</h2>
     </div>
 
-    <p>{{ product.description }}</p>
+    <div v-else-if="product" class="py-8 space-y-8">
+      <!-- Заголовок товара -->
+      <h1 class="text-3xl font-bold text-gray-900">{{ product.name }}</h1>
 
-    <h3>${{ product.price }}</h3>
+      <!-- Галерея изображений -->
+      <div v-if="product.images?.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <img
+          v-for="(img, index) in product.images"
+          :key="index"
+          :src="img.image"
+          :alt="product.name"
+          class="w-full max-w-md rounded-lg shadow-md object-cover"
+        />
+      </div>
 
-    <AppAddToCartButton :productId="product.id" />
-  </div>
+      <!-- Описание -->
+      <p class="text-gray-600 leading-relaxed">{{ product.description }}</p>
+
+      <!-- Цена -->
+      <h3 class="text-2xl font-bold text-primary">${{ product.price }}</h3>
+
+      <!-- Кнопка добавления в корзину -->
+      <AppAddToCartButton :productId="product.id" />
+
+      <!-- Отзывы -->
+      <AppProductReviews :productId="product.id" />
+    </div>
+  </UContainer>
 </template>

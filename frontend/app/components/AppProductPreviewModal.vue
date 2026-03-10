@@ -33,6 +33,9 @@ function openLightbox(index: number) {
     v-model:open="modal.isOpen"
     :title="modal.product?.name"
     :description="modal.product?.description"
+    :close-on-escape="true"
+    :dismissible="true"
+    :ui="{ content: 'focus:outline-none' }"
     class="max-w-4xl"
   >
     <template #body>
@@ -56,6 +59,9 @@ function openLightbox(index: number) {
             </div>
           </template>
         </UCarousel>
+        <div>
+          <AppProductReviews :productId="modal.product.id" />
+        </div>
 
         <div class="flex justify-between">
           <p class="text-lg font-semibold text-primary">${{ modal.product.price }}</p>
