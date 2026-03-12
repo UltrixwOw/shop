@@ -23,48 +23,39 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     try {
       await auth.fetchUser($api)
       
-      // Загружаем данные только если пользователь успешно получен
       if (auth.user) {
+        // Синхронизируем вишлист и корзину
         await Promise.all([
-          cart.fetchCart?.(),
-          orders.fetchOrders?.(),
-          wishlist.fetchWishlist?.()
+          wishlist.syncLocalToServer?.(),
+          cart.syncLocalToServer?.()
+        ])
+        
+        // Потом загружаем остальные данные
+        await Promise.all([
+          orders.fetchOrders?.()
         ].filter(Boolean))
       }
     } catch (error) {
       console.error('Auth init error:', error)
       auth.clearAuthState()
     }
+  } else {
+    // Если пользователь не авторизован, загружаем из localStorage
+    wishlist.loadLocal?.()
+    cart.loadLocal?.()
   }
 
   auth.setInitialized()
 
-  // ===============================
-  // Отдельные watcher'ы для логина и логаута
-  // ===============================
-
-  // Watcher для логина
+  // Watcher для логина - убираем синхронизацию отсюда, так как она уже есть в инициализации
   watch(
     () => auth.isAuthenticated,
-    async (isAuth) => {
-      if (!isAuth) return // Только для логина
+    async (isAuth, wasAuth) => {
+      if (!isAuth || wasAuth) return
       
-      try {
-        await auth.fetchUser($api)
-        
-        if (auth.user) {
-          await Promise.all([
-            cart.fetchCart?.(),
-            orders.fetchOrders?.(),
-            wishlist.fetchWishlist?.()
-          ].filter(Boolean))
-          
-          productModal.close()
-          await router.push('/')
-        }
-      } catch (error) {
-        console.error('Login error:', error)
-      }
+      // Только редирект и закрытие модалки, без синхронизации
+      productModal.close()
+      await router.push('/')
     }
   )
 
@@ -72,7 +63,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   watch(
     () => !auth.isAuthenticated,
     async (isNotAuth, wasNotAuth) => {
-      if (!isNotAuth || wasNotAuth) return // Только при переходе в неавторизованное
+      if (!isNotAuth || wasNotAuth) return
       
       productModal.close()
       cart.$reset?.()

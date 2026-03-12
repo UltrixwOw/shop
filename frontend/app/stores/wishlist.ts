@@ -1,5 +1,6 @@
 // stores/wishlist.ts
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth'
 
 interface WishlistItem {
     id: number
@@ -16,10 +17,13 @@ interface WishlistResponse {
 }
 
 export const useWishlistStore = defineStore('wishlist', () => {
-    const items = ref<number[]>([]) // массив ID товаров
-    const fullItems = ref<WishlistItem[]>([]) // полные данные (если нужны)
+    const items = ref<number[]>([])
+    const fullItems = ref<WishlistItem[]>([])
     const loading = ref(false)
     const initialized = ref(false)
+    
+    const authStore = useAuthStore()
+    const isAuthenticated = computed(() => authStore.isAuthenticated)
 
     // =============================
     // COMPUTED
@@ -37,10 +41,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
     // =============================
 
     const setWishlist = (data: any) => {
-        // Обрабатываем разные форматы ответа
         const itemsData = data.results || data.items || data || []
-
-        // Сохраняем полные данные
         fullItems.value = itemsData.map((item: any) => ({
             id: item.id,
             product: item.product,
@@ -49,10 +50,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
             product_image: item.product_image,
             created_at: item.created_at
         }))
-
-        // Сохраняем только ID для быстрого доступа
         items.value = fullItems.value.map(i => i.product)
-
         initialized.value = true
     }
 
@@ -67,16 +65,20 @@ export const useWishlistStore = defineStore('wishlist', () => {
     const fetchWishlist = async () => {
         if (loading.value) return
 
-        const { $api } = useNuxtApp()
-        loading.value = true
-
         try {
+            const { $api } = useNuxtApp()
+            loading.value = true
+
             const res = await $api.get<WishlistResponse>('/wishlist/')
             setWishlist(res.data)
-        } catch (e) {
-            console.error('Wishlist fetch error:', e)
-            items.value = []
-            fullItems.value = []
+        } catch (e: any) {
+            if (e.response?.status === 401) {
+                loadLocal()
+            } else {
+                console.error('Wishlist fetch error:', e)
+                items.value = []
+                fullItems.value = []
+            }
         } finally {
             loading.value = false
         }
@@ -90,14 +92,16 @@ export const useWishlistStore = defineStore('wishlist', () => {
         if (isInWishlist(productId)) return
 
         const { $api } = useNuxtApp()
-
-        // Оптимистичное обновление
         items.value.push(productId)
+
+        if (!isAuthenticated.value) {
+            saveLocal()
+            return
+        }
 
         try {
             const res = await $api.post('/wishlist/', { product: productId })
 
-            // Если API вернул полные данные, добавляем их
             if (res.data?.id) {
                 fullItems.value.push({
                     id: res.data.id,
@@ -108,11 +112,18 @@ export const useWishlistStore = defineStore('wishlist', () => {
                     created_at: res.data.created_at
                 })
             } else {
-                // Если данных нет, перезагружаем весь список
                 await fetchWishlist()
             }
-        } catch (e) {
-            // Откат при ошибке
+            
+            if (isAuthenticated.value) {
+                saveLocal()
+            }
+        } catch (e: any) {
+            if (e.response?.status === 401) {
+                saveLocal()
+                return
+            }
+
             items.value = items.value.filter(id => id !== productId)
             console.error('Add to wishlist failed', e)
             throw e
@@ -127,18 +138,26 @@ export const useWishlistStore = defineStore('wishlist', () => {
         if (!isInWishlist(productId)) return
 
         const { $api } = useNuxtApp()
-
-        // Оптимистичное обновление
         const backup = [...items.value]
         const backupFull = [...fullItems.value]
 
         items.value = items.value.filter(id => id !== productId)
         fullItems.value = fullItems.value.filter(i => i.product !== productId)
 
+        if (!isAuthenticated.value) {
+            saveLocal()
+            return
+        }
+
         try {
             await $api.delete(`/wishlist/${productId}/`)
-        } catch (e) {
-            // Откат при ошибке
+            saveLocal()
+        } catch (e: any) {
+            if (e.response?.status === 401) {
+                saveLocal()
+                return
+            }
+
             items.value = backup
             fullItems.value = backupFull
             console.error('Remove from wishlist failed', e)
@@ -155,6 +174,50 @@ export const useWishlistStore = defineStore('wishlist', () => {
             await removeFromWishlist(productId)
         } else {
             await addToWishlist(productId)
+        }
+    }
+
+    // =============================
+    // SYNC LOCAL TO SERVER
+    // =============================
+
+    const syncLocalToServer = async (removeMissing: boolean = true) => {
+        if (!import.meta.client) return
+        
+        loadLocal()
+        
+        if (isAuthenticated.value) {
+            const localItems = [...items.value]
+            
+            try {
+                const { $api } = useNuxtApp()
+                
+                if (localItems.length > 0) {
+                    
+                    const response = await $api.post('/wishlist/sync/', {
+                        product_ids: localItems,
+                        remove_missing: removeMissing
+                    })
+                    
+                    const serverItems = response.data.results || []
+                    fullItems.value = serverItems.map((item: any) => ({
+                        id: item.id,
+                        product: item.product,
+                        created_at: item.created_at
+                    }))
+                    items.value = fullItems.value.map(i => i.product)
+                    
+                    localStorage.removeItem('wishlist')
+                    
+                    return response.data
+                } else {
+                    await fetchWishlist()
+                }
+            } catch (e) {
+                console.error('Failed to sync wishlist to server:', e)
+                await fetchWishlist()
+                throw e
+            }
         }
     }
 
@@ -215,7 +278,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
     }
 
     // =============================
-    // LOCAL STORAGE (для неавторизованных)
+    // LOCAL STORAGE
     // =============================
 
     const loadLocal = () => {
@@ -225,7 +288,10 @@ export const useWishlistStore = defineStore('wishlist', () => {
             const saved = localStorage.getItem('wishlist')
             if (saved) {
                 items.value = JSON.parse(saved)
+            } else {
+                items.value = []
             }
+            fullItems.value = []
         } catch {
             items.value = []
         }
@@ -234,6 +300,21 @@ export const useWishlistStore = defineStore('wishlist', () => {
     const saveLocal = () => {
         if (!import.meta.client) return
         localStorage.setItem('wishlist', JSON.stringify(items.value))
+    }
+
+    // =============================
+    // INIT - вызывается из компонентов
+    // =============================
+
+    const init = async () => {
+        if (!import.meta.client) return
+        if (initialized.value) return
+        
+        if (isAuthenticated.value) {
+            await syncLocalToServer()
+        } else {
+            loadLocal()
+        }
     }
 
     // =============================
@@ -249,7 +330,18 @@ export const useWishlistStore = defineStore('wishlist', () => {
     const $reset = () => {
         items.value = []
         fullItems.value = []
+        saveLocal()
     }
+
+    watch(() => authStore.isAuthenticated, async (newVal, oldVal) => {
+        if (newVal && !oldVal) {
+            await syncLocalToServer()
+        } else if (!newVal && oldVal) {
+            loadLocal()
+        }
+    })
+
+    // Убираем автоматический вызов init()
 
     return {
         items,
@@ -257,6 +349,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         loading,
         initialized,
         shareInfo,
+        isAuthenticated,
 
         totalCount,
         isEmpty,
@@ -267,6 +360,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         removeFromWishlist,
         toggleWishlist,
         clearWishlistState,
+        syncLocalToServer,
 
         fetchShareInfo,
         generateShare,
@@ -276,6 +370,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         loadLocal,
         saveLocal,
         setWishlist,
+        init,
         $reset
     }
 })

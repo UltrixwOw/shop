@@ -1,51 +1,50 @@
 <script setup lang="ts">
 import { useImgModalStore } from "~/stores/imgModal";
 import { useCartStore } from "~/stores/cart";
-import { useProductsStore } from "~/stores/products"; // <-- Добавляем
+import { useProductsStore } from "~/stores/products";
 
 const route = useRoute();
 const { $api } = useNuxtApp();
 const imgModal = useImgModalStore();
 const cartStore = useCartStore();
-const productsStore = useProductsStore(); // <-- Добавляем
+const productsStore = useProductsStore();
 
 const id = computed(() => route.params.id);
-const loading = ref(true);
 const error = ref<string | null>(null);
 
-// Загружаем продукт
+// Загружаем продукт на сервере (await гарантирует, что данные будут до рендера)
 const { data: product } = await useAsyncData(`product-${id.value}`, async () => {
-  const res = await $api.get(`/shop/products/${id.value}/`);
-  const productData = res.data;
+  try {
+    const res = await $api.get(`/shop/products/${id.value}/`);
+    const productData = res.data;
 
-  // Добавляем продукт в productsStore, чтобы AppAddToCartButton его увидел
-  if (!productsStore.items.find((p) => p.id === productData.id)) {
-    // Добавляем в начало массива, чтобы не перезаписывать другие товары
-    productsStore.items.unshift(productData);
+    // Добавляем продукт в productsStore на сервере
+    if (process.client && !productsStore.items.find((p) => p.id === productData.id)) {
+      // На клиенте добавляем в стор
+      productsStore.items.unshift(productData);
+    } else if (process.server) {
+      // На сервере тоже добавляем для консистентности
+      productsStore.items.unshift(productData);
+    }
+
+    return productData;
+  } catch (err) {
+    error.value = "Failed to load product";
+    console.error(err);
+    return null;
   }
-
-  return productData;
 });
 
-// Загружаем корзину как в products
+// Загружаем корзину (только на клиенте, поисковикам корзина не нужна)
 onMounted(async () => {
   try {
     if (!cartStore.initialized) {
       await cartStore.fetchCart();
     }
   } catch (err) {
-    error.value = "Failed to load cart";
-    console.error(err);
-  } finally {
-    loading.value = false;
+    console.error("Failed to load cart", err);
   }
 });
-
-// Для SSR - грузим корзину на сервере
-if (import.meta.server && !cartStore.initialized) {
-  await cartStore.fetchCart();
-  loading.value = false;
-}
 
 // Вычисляемый массив для карусели
 const carouselItems = computed(() => {
@@ -65,31 +64,35 @@ function openLightbox(index: number) {
     product.value.description
   );
 }
+
+// Мета-теги для SEO
+useHead({
+  title: product.value?.name ? `${product.value.name} | Shop` : 'Product | Shop',
+  meta: [
+    {
+      name: 'description',
+      content: product.value?.description || 'Product description'
+    },
+    {
+      property: 'og:title',
+      content: product.value?.name || 'Product'
+    },
+    {
+      property: 'og:description',
+      content: product.value?.description || 'Product description'
+    },
+    {
+      property: 'og:image',
+      content: product.value?.images?.[0]?.image || '/images/productPreview.png'
+    }
+  ]
+});
 </script>
 
 <template>
   <UContainer>
-    <!-- Состояние загрузки - как в products -->
-    <div v-if="loading" class="py-8 space-y-8">
-      <USkeleton class="h-10 w-32 rounded-lg" />
-      <!-- кнопка Products -->
-      <USkeleton class="h-12 w-2/3 rounded-lg" />
-      <!-- заголовок -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <USkeleton v-for="n in 3" :key="n" class="aspect-square rounded-lg" />
-      </div>
-      <USkeleton class="h-24 w-full rounded-lg" />
-      <!-- описание -->
-      <div class="flex items-center justify-between">
-        <USkeleton class="h-10 w-24 rounded-lg" />
-        <!-- цена -->
-        <USkeleton class="h-10 w-32 rounded-lg" />
-        <!-- кнопка Add to cart -->
-      </div>
-    </div>
-
-    <!-- Ошибка - как в products -->
-    <div v-else-if="error" class="py-8">
+    <!-- Ошибка -->
+    <div v-if="error" class="py-8">
       <UAlert color="error" variant="soft" title="Error" :description="error" />
     </div>
 
@@ -103,7 +106,7 @@ function openLightbox(index: number) {
       />
     </div>
 
-    <!-- Продукт загружен -->
+    <!-- Продукт загружен - сразу рендерится с данными -->
     <div v-else class="py-8 space-y-8">
       <!-- Кнопка "Products" -->
       <UButton variant="ghost" icon="i-heroicons-shopping-bag" to="/products">

@@ -21,6 +21,7 @@ const isActive = computed(() => {
       :icon="isActive ? 'i-heroicons-heart-solid' : 'i-heroicons-heart'"
       color="neutral"
       variant="ghost"
+      size="sm"
       :class="[
         'transition-colors',
         isActive ? 'text-myPink-500 hover:text-myPink-600' : 'text-gray-500 hover:text-gray-700'
@@ -33,6 +34,7 @@ const isActive = computed(() => {
         icon="i-heroicons-heart"
         color="neutral"
         variant="ghost"
+        size="sm"
         class="text-gray-500"
         disabled
       />

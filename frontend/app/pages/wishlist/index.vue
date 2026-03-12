@@ -6,16 +6,16 @@ import { useProductPreviewModalStore } from '~/stores/productPreviewModal'
 const wishlist = useWishlistStore()
 const productsStore = useProductsStore()
 const previewModal = useProductPreviewModalStore()
+const toast = useToast() // <-- Создаем тост в setup
 
 // Состояния загрузки
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// Загружаем данные при монтировании
+// Инициализируем wishlist
 onMounted(async () => {
   try {
-    // Загружаем избранное
-    await wishlist.fetchWishlist()
+    await wishlist.init() // <-- Вызываем init()
     
     // Загружаем товары, если их нет
     if (!productsStore.items.length) {
@@ -41,13 +41,13 @@ const wishlistProducts = computed(() => {
 const removeFromWishlist = async (productId: number) => {
   try {
     await wishlist.removeFromWishlist(productId)
-    useToast().add({
+    toast.add({ // <-- Используем toast из setup
       title: 'Removed',
       description: 'Product removed from wishlist',
       color: 'success'
     })
   } catch (err) {
-    useToast().add({
+    toast.add({ // <-- Используем toast из setup
       title: 'Error',
       description: 'Failed to remove product',
       color: 'error'
@@ -57,7 +57,7 @@ const removeFromWishlist = async (productId: number) => {
 
 const shareWishlist = async () => {
   if (!wishlist.items.length) {
-    useToast().add({
+    toast.add({ // <-- Используем toast из setup
       title: 'Empty',
       description: 'Your wishlist is empty',
       color: 'warning'
@@ -72,13 +72,13 @@ const shareWishlist = async () => {
     const url = `${window.location.origin}/wishlist/share/${share.token}`
     await navigator.clipboard.writeText(url)
 
-    useToast().add({
+    toast.add({ // <-- Используем toast из setup
       title: 'Link copied',
       description: 'Wishlist link copied to clipboard',
       color: 'success'
     })
   } catch (err) {
-    useToast().add({
+    toast.add({ // <-- Используем toast из setup
       title: 'Error',
       description: 'Failed to generate share link',
       color: 'error'
@@ -157,11 +157,11 @@ if (import.meta.server) {
         <!-- Кнопка удаления из избранного (вместо добавления) -->
         <div class="absolute top-2 right-2 z-20" @click.stop="removeFromWishlist(product.id)">
           <UButton
-            icon="i-heroicons-trash"
-            color="red"
-            variant="soft"
+            icon="i-heroicons-heart-solid"
+            color="neutral"
+            variant="ghost"
             size="sm"
-            class="rounded-full"
+            class="rounded-full text-myPink-500 "
           />
         </div>
 
@@ -203,7 +203,7 @@ if (import.meta.server) {
         </div>
 
         <div class="flex justify-between items-center mt-4">
-          <p class="text-primary font-bold text-xl">${{ product.price }}</p>
+          <AppMoney class="text-primary font-bold text-xl" :value="product.price" />
 
           <AppAddToCartButton
             :productId="product.id"

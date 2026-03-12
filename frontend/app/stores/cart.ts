@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth'
 
 interface CartItem {
   id: number
@@ -17,6 +18,11 @@ export const useCartStore = defineStore('cart', () => {
   const items = ref<CartItem[]>([])
   const loading = ref(false)
   const initialized = ref(false)
+
+  const syncing = ref(false)
+
+  const authStore = useAuthStore()
+  const isAuthenticated = computed(() => authStore.isAuthenticated)
 
   // =============================
   // COMPUTED
@@ -52,6 +58,41 @@ export const useCartStore = defineStore('cart', () => {
   const findItem = (id: number) =>
     items.value.find(i => i.id === id)
 
+  const findItemByProduct = (productId: number) =>
+    items.value.find(i => i.product === productId)
+
+  // =============================
+  // LOCAL STORAGE
+  // =============================
+
+  const loadLocal = () => {
+    if (!import.meta.client) return
+
+    try {
+      const saved = localStorage.getItem('cart')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        items.value = parsed.map((item: any) => ({
+          ...item,
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          product_stock: Number(item.product_stock)
+        }))
+        console.log('Cart loaded from localStorage:', items.value)
+      } else {
+        items.value = []
+      }
+    } catch {
+      items.value = []
+    }
+  }
+
+  const saveLocal = () => {
+    if (!import.meta.client) return
+    localStorage.setItem('cart', JSON.stringify(items.value))
+    console.log('Cart saved to localStorage:', items.value)
+  }
+
   // =============================
   // FETCH
   // =============================
@@ -59,14 +100,28 @@ export const useCartStore = defineStore('cart', () => {
   const fetchCart = async () => {
     if (loading.value) return
 
+    // Если неавторизован - загружаем из localStorage
+    if (!isAuthenticated.value) {
+      loadLocal()
+      initialized.value = true
+      return
+    }
+
     const { $api } = useNuxtApp()
     loading.value = true
 
     try {
       const res = await $api.get<CartResponse>('/cart/')
       setCart(res.data)
-    } catch {
-      items.value = []
+      // После успешной загрузки с сервера очищаем localStorage
+      localStorage.removeItem('cart')
+    } catch (e: any) {
+      if (e.response?.status === 401) {
+        loadLocal()
+      } else {
+        console.error('Cart fetch error:', e)
+        items.value = []
+      }
     } finally {
       loading.value = false
     }
@@ -77,20 +132,45 @@ export const useCartStore = defineStore('cart', () => {
   // =============================
 
   const addToCart = async (productId: number, quantity = 1) => {
-    const { $api } = useNuxtApp()
+    // Проверяем существующий товар
+    const existing = findItemByProduct(productId)
 
-    try {
-      const existing = items.value.find(i => i.product === productId)
+    if (existing) {
+      const newQty = existing.quantity + quantity
+      if (newQty > existing.product_stock) return
+      await updateQuantity(existing.id, newQty)
+      return
+    }
 
-      if (existing) {
-        const newQty = existing.quantity + quantity
+    // Если неавторизован - сохраняем в localStorage
+    if (!isAuthenticated.value) {
+      // Нужно получить информацию о товаре
+      const { $api } = useNuxtApp()
+      try {
+        const res = await $api.get(`/shop/products/${productId}/`)
+        const product = res.data
 
-        if (newQty > existing.product_stock) return
+        const newItem: CartItem = {
+          id: Date.now(), // временный ID для localStorage
+          product: productId,
+          product_name: product.name,
+          price: Number(product.price),
+          quantity: quantity,
+          product_stock: product.stock
+        }
 
-        await updateQuantity(existing.id, newQty)
+        items.value.push(newItem)
+        saveLocal()
+        return
+      } catch (e) {
+        console.error('Failed to get product info:', e)
         return
       }
+    }
 
+    // Авторизован - отправляем на сервер
+    const { $api } = useNuxtApp()
+    try {
       const res = await $api.post('/cart/add/', {
         product_id: productId,
         quantity
@@ -105,10 +185,10 @@ export const useCartStore = defineStore('cart', () => {
           quantity: Number(res.data.quantity),
           product_stock: Number(res.data.product_stock)
         })
+        saveLocal()
       } else {
         await fetchCart()
       }
-
     } catch (e) {
       console.error('Add to cart failed', e)
     }
@@ -119,15 +199,26 @@ export const useCartStore = defineStore('cart', () => {
   // =============================
 
   const removeFromCart = async (itemId: number) => {
-    const { $api } = useNuxtApp()
-
     const backup = [...items.value]
     items.value = items.value.filter(i => i.id !== itemId)
 
+    // Если неавторизован - просто сохраняем в localStorage
+    if (!isAuthenticated.value) {
+      saveLocal()
+      return
+    }
+
+    const { $api } = useNuxtApp()
     try {
       await $api.delete(`/cart/remove/${itemId}/`)
-    } catch (e) {
+      saveLocal()
+    } catch (e: any) {
       items.value = backup
+      if (e.response?.status === 401) {
+        saveLocal()
+      } else {
+        console.error('Remove from cart failed', e)
+      }
     }
   }
 
@@ -138,23 +229,87 @@ export const useCartStore = defineStore('cart', () => {
   const updateQuantity = async (itemId: number, quantity: number) => {
     if (quantity < 1) return
 
-    const { $api } = useNuxtApp()
     const item = findItem(itemId)
     if (!item) return
-
     if (quantity > item.product_stock) return
 
     const oldQuantity = item.quantity
-    item.quantity = quantity // optimistic
+    item.quantity = quantity
 
+    // Если неавторизован - просто сохраняем в localStorage
+    if (!isAuthenticated.value) {
+      saveLocal()
+      return
+    }
+
+    const { $api } = useNuxtApp()
     try {
       await $api.patch(`/cart/update/${itemId}/`, { quantity })
+      saveLocal()
     } catch (e: any) {
-      item.quantity = oldQuantity // rollback
-
-      if (e.response?.data?.detail) {
-        console.error(e.response.data.detail)
+      item.quantity = oldQuantity
+      if (e.response?.status === 401) {
+        saveLocal()
+      } else {
+        console.error('Update quantity failed', e)
       }
+    }
+  }
+
+  // =============================
+  // SYNC LOCAL TO SERVER
+  // =============================
+
+  const syncLocalToServer = async () => {
+    if (!import.meta.client) return
+
+    // Добавляем флаг, чтобы предотвратить повторную синхронизацию
+    if (syncing.value) return
+
+    loadLocal()
+
+    if (isAuthenticated.value && items.value.length > 0) {
+      syncing.value = true
+      const localItems = [...items.value]
+
+      try {
+        const { $api } = useNuxtApp()
+
+        // Преобразуем локальные товары в формат для синхронизации
+        const itemsToSync = localItems.map(item => ({
+          product_id: item.product,
+          quantity: item.quantity
+        }))
+
+        console.log('Syncing cart items:', itemsToSync)
+
+        // Отправляем все товары одним запросом
+        const response = await $api.post('/cart/sync/', {
+          items: itemsToSync
+        })
+
+        // Обновляем корзину данными с сервера
+        if (response.data?.items) {
+          setCart({ items: response.data.items })
+        }
+
+        // Очищаем localStorage после успешной синхронизации
+        localStorage.removeItem('cart')
+
+        console.log('Cart synced to server successfully', response.data.sync_results)
+        return response.data
+
+      } catch (e) {
+        console.error('Failed to sync cart to server:', e)
+        // При ошибке загружаем корзину с сервера
+        await fetchCart()
+        throw e
+      } finally {
+        syncing.value = false
+      }
+    } else if (isAuthenticated.value) {
+      // Если локальных данных нет, просто загружаем с сервера
+      await fetchCart()
     }
   }
 
@@ -173,23 +328,55 @@ export const useCartStore = defineStore('cart', () => {
 
   const checkout = async (addressId: number) => {
     const { $api } = useNuxtApp()
-
     const res = await $api.post('/orders/checkout/', {
       address_id: addressId
     })
-
     await fetchCart()
     return res.data
   }
 
+  // =============================
+  // INIT
+  // =============================
+
+  const init = async () => {
+    if (!import.meta.client) return
+    if (initialized.value) return
+
+    if (isAuthenticated.value) {
+      await syncLocalToServer()
+    } else {
+      loadLocal()
+      initialized.value = true
+    }
+  }
+
+  // =============================
+  // RESET
+  // =============================
+
   const $reset = () => {
     items.value = []
+    saveLocal()
   }
+
+  // Следим за изменением авторизации
+  watch(() => authStore.isAuthenticated, async (newVal, oldVal) => {
+    if (newVal && !oldVal) {
+      // Пользователь авторизовался - синхронизируем
+      await syncLocalToServer()
+    } else if (!newVal && oldVal) {
+      // Пользователь вышел - загружаем из localStorage
+      loadLocal()
+    }
+  })
 
   return {
     items,
     loading,
     initialized,
+    isAuthenticated,
+    syncing,
 
     totalPrice,
     totalCount,
@@ -202,6 +389,9 @@ export const useCartStore = defineStore('cart', () => {
     clearCartState,
     checkout,
     setCart,
+    syncLocalToServer,
+    init,
+    loadLocal,
     $reset
   }
 })

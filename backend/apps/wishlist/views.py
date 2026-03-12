@@ -134,3 +134,84 @@ class PublicWishlistView(APIView):
                 {"error": "Public wishlist not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+            
+class WishlistSyncView(APIView):
+    """Синхронизация локального избранного с сервером"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        POST /api/wishlist/sync/
+        Body: {"product_ids": [1, 2, 3]}
+        
+        Синхронизирует локальный список с сервером:
+        - Добавляет товары, которых нет на сервере
+        - Удаляет товары, которых нет в локальном списке (опционально)
+        """
+        product_ids = request.data.get('product_ids', [])
+        
+        if not isinstance(product_ids, list):
+            return Response(
+                {"error": "product_ids must be a list"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Получаем текущие товары пользователя
+        current_items = Wishlist.objects.filter(user=request.user)
+        current_product_ids = set(current_items.values_list('product_id', flat=True))
+        new_product_ids = set(product_ids)
+        
+        # Товары для добавления (есть в локальном, нет на сервере)
+        to_add = new_product_ids - current_product_ids
+        
+        # Товары для удаления (есть на сервере, нет в локальном)
+        to_remove = current_product_ids - new_product_ids
+        
+        # Результаты операций
+        results = {
+            'added': [],
+            'removed': [],
+            'failed': []
+        }
+        
+        # Добавляем новые товары
+        for product_id in to_add:
+            try:
+                item, created = Wishlist.objects.get_or_create(
+                    user=request.user,
+                    product_id=product_id
+                )
+                if created:
+                    results['added'].append(product_id)
+            except Exception as e:
+                results['failed'].append({
+                    'product_id': product_id,
+                    'action': 'add',
+                    'error': str(e)
+                })
+        
+        # Удаляем товары (опционально - можно пропустить этот шаг)
+        # Можно сделать параметром запроса: remove_missing=true/false
+        if request.data.get('remove_missing', True):
+            for product_id in to_remove:
+                try:
+                    Wishlist.objects.filter(
+                        user=request.user,
+                        product_id=product_id
+                    ).delete()
+                    results['removed'].append(product_id)
+                except Exception as e:
+                    results['failed'].append({
+                        'product_id': product_id,
+                        'action': 'remove',
+                        'error': str(e)
+                    })
+        
+        # Возвращаем обновленный список
+        updated_items = Wishlist.objects.filter(user=request.user)
+        serializer = WishlistSerializer(updated_items, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'sync_results': results
+        }, status=status.HTTP_200_OK)

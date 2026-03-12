@@ -10,4 +10,5 @@ urlpatterns = [
     # Эндпоинты для шаринга
     path('share/', views.WishlistShareView.as_view(), name='wishlist-share'),
     path('public/<uuid:token>/', views.PublicWishlistView.as_view(), name='wishlist-public'),
+    path('sync/', views.WishlistSyncView.as_view(), name='wishlist-sync'),
 ]
