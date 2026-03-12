@@ -126,15 +126,47 @@ export const useReviewsStore = defineStore('reviews', () => {
 
   }
 
+  // =============================
+  // PAGINATION
+  // =============================
+
+  const page = ref(1)
+  const perPage = 4
+
+  const paginatedReviews = computed(() => {
+    const start = (page.value - 1) * perPage
+    const end = start + perPage
+
+    return sortedReviews.value.slice(start, end)
+  })
+
+  const startItem = computed(() => {
+    if (!totalReviews.value) return 0
+    return (page.value - 1) * perPage + 1
+  })
+
+  const endItem = computed(() => {
+    return Math.min(page.value * perPage, totalReviews.value)
+  })
+
+  watch(sort, () => {
+    page.value = 1
+  })
+
   return {
     items,
     loading,
     initialized,
-    sort, // 👈 ВАЖНО: добавить sort в возвращаемые значения!
+    sort,
+    page,
+    perPage,
     averageRating,
     ratingBreakdown,
     sortedReviews,
+    paginatedReviews,
     totalReviews,
+    startItem,
+    endItem,
     fetchReviews,
     likeReview,
     $reset

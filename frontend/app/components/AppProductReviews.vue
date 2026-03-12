@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { useReviewsStore } from "~/stores/reviews";
 
+const { requireAuth } = useRequireAuth();
+
+function handleLike(reviewId: number) {
+  requireAuth(() => reviews.likeReview(reviewId));
+}
+
 const props = defineProps<{
   productId: number;
 }>();
@@ -88,8 +94,8 @@ const selectedSort = computed({
 
     <!-- Reviews -->
     <div class="space-y-6">
-      <UCard v-for="review in reviews.sortedReviews" :key="review.id">
-        <div class="flex justify-between items-start">
+      <UCard v-for="review in reviews.paginatedReviews" :key="review.id">
+        <div class="flex justify-between items-center">
           <!-- Author -->
           <div class="flex items-center gap-3">
             <UAvatar :alt="review.user_name" size="sm" />
@@ -129,7 +135,9 @@ const selectedSort = computed({
           </div>
 
           <!-- Rating -->
-          <div class="text-yellow-500 font-medium">⭐ {{ review.rating }}</div>
+          <div class="flex">
+            <span class="text-yellow-500 font-medium px-2">⭐{{ review.rating }}</span>
+          </div>
         </div>
 
         <!-- Comment -->
@@ -144,7 +152,7 @@ const selectedSort = computed({
             variant="ghost"
             icon="i-lucide-thumbs-up"
             :color="review.liked_by_me ? 'primary' : 'gray'"
-            @click="reviews.likeReview(review.id)"
+            @click="handleLike(review.id)"
           >
             {{ review.likes_count }}
           </UButton>
@@ -155,6 +163,18 @@ const selectedSort = computed({
           </UBadge>
         </div>
       </UCard>
+      <UPagination
+        v-if="reviews.totalReviews > reviews.perPage"
+        v-model:page="reviews.page"
+        :total="reviews.totalReviews"
+        :items-per-page="reviews.perPage"
+        size="sm"
+        class="flex justify-center"
+      />
+      <div v-if="reviews.totalReviews > 4" class="text-sm text-gray-500 text-center">
+        Showing {{ reviews.startItem }}–{{ reviews.endItem }} of
+        {{ reviews.totalReviews }} reviews
+      </div>
     </div>
 
     <!-- Просто вставляем AppAddReview - вся логика внутри него -->
