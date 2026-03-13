@@ -1,4 +1,5 @@
 from .base import *
+import dj_database_url
 
 DEBUG = False
 ALLOWED_HOSTS = [
@@ -50,3 +51,11 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # или 'None' если нужно
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = True  # True только для HTTPS
 CSRF_COOKIE_SECURE = True
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.environ.get("postgresql://meloni_user:OFrl7bGZFcjgpKcLnYfbOEpyRWCZ9PkB@dpg-d6q5rkngi27c73fekc8g-a/meloni")
+    )
+}

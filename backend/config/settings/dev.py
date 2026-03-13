@@ -64,3 +64,11 @@ CSRF_COOKIE_SECURE = False
 
 # Channels для разработки
 ASGI_APPLICATION = "config.asgi.application"
+
+# Для быстрого теста можно использовать SQLite:
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
