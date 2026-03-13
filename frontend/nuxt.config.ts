@@ -2,18 +2,28 @@
 export default defineNuxtConfig({
   devServer: {
     host: '127.0.0.1',
-    port: 3000 // опционально
+    port: 8000 // опционально
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   runtimeConfig: {
     public: {
-      apiBase: 'http://127.0.0.1:8000/api' // Django API
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api'
     }
   },
   modules: ['@pinia/nuxt', '@nuxt/ui', '@nuxt/image'],
   pinia: {
     storesDirs: ['./app/stores/**'],   // важно для Nuxt 4
+  },
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit', 
+        '@vueuse/core',
+        'axios',
+      ]
+    }
   },
   components: [
     {

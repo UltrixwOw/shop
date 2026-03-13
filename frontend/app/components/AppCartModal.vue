@@ -147,22 +147,12 @@ console.log(cart.items);
             />
           </div>
         </UCard>
-
-        <!-- TOTAL -->
-        <USeparator />
-        <div class="flex justify-between items-center">
-          <span class="text-xl font-semibold"> Итого: </span>
-
-          <span class="text-3xl font-bold text-primary">
-            <AppMoney :value="cart.totalPrice" />
-          </span>
-        </div>
       </div>
     </template>
 
-    <template #footer>
-      <div class="flex gap-4 w-full">
-        <UButton
+    <template v-if="!cart.isEmpty" #footer>
+      <div class="flex w-full gap-4 justify-between">
+        <!--<UButton
           variant="ghost"
           block
           icon="i-heroicons-shopping-bag"
@@ -170,9 +160,17 @@ console.log(cart.items);
           @click="modal.close()"
         >
           Продолжить покупки
-        </UButton>
+        </UButton> -->
+        <!-- TOTAL -->
+        <div class="flex relative md:flex-row md:justify-between md:items-center w-50 flex-col items-start">
+          <span class="text-md text-gray-400 absolute -top-3"> Итого: </span>
 
-        <UButton block size="lg" :disabled="cart.isEmpty" @click="checkoutOrder">
+          <span class="text-2xl font-bold text-primary pt-1">
+            <AppMoney :value="cart.totalPrice" />
+          </span>
+        </div>
+
+        <UButton class="w-50" block size="lg" :disabled="cart.isEmpty" @click="checkoutOrder">
           Оформить заказ
         </UButton>
       </div>
