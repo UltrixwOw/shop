@@ -1,6 +1,7 @@
 Django
 djangorestframework
 djangorestframework-simplejwt
+python-dotenv
 channels
 channels-redis
 dj-database-url

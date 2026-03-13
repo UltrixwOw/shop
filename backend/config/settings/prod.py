@@ -1,5 +1,4 @@
 from .base import *
-import dj_database_url
 
 DEBUG = False
 ALLOWED_HOSTS = [
@@ -53,19 +52,3 @@ SESSION_COOKIE_SECURE = True  # True только для HTTPS
 CSRF_COOKIE_SECURE = True
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Безопасное получение DATABASE_URL
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-    }
-else:
-    # fallback для локальной разработки
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }

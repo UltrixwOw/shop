@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from django.core.management.utils import get_random_secret_key
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -84,6 +85,22 @@ WSGI_APPLICATION = "config.wsgi.application"
         "PORT": os.getenv("DB_PORT", "5432"),
     }
 }"""
+
+# Безопасное получение DATABASE_URL
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    }
+else:
+    # fallback для локальной разработки
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 # 🔹 Password validation
 AUTH_PASSWORD_VALIDATORS = [
