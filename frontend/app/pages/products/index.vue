@@ -108,7 +108,7 @@ const openPreview = (product: any) => {
         </div>
 
         <div class="flex justify-between items-center mt-4">
-          <AppMoney :value="product.price" />
+          <AppMoney class="tabular-nums text-primary font-bold text-xl" :value="product.price" />
 
           <AppAddToCartButton
             :productId="product.id"

@@ -7,7 +7,7 @@ const { format } = useMoney()
 </script>
 
 <template>
-  <span class="tabular-nums text-primary font-bold text-xl">
+  <span>
     {{ format(props.value) }}
   </span>
 </template>

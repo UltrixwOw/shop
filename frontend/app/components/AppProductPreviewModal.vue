@@ -66,7 +66,7 @@ function openLightbox(index: number) {
         <USeparator />
 
         <div class="flex justify-between">
-          <AppMoney :value="modal.product.price" />
+          <AppMoney class="tabular-nums text-primary font-bold text-xl" :value="modal.product.price" />
 
           <AppAddToCartButton :productId="modal.product.id" class="relative z-10 w-max" />
         </div>

@@ -5,6 +5,7 @@ interface CartItem {
   id: number
   product: number
   product_name: string
+  product_image?: string
   price: number
   quantity: number
   product_stock: number
@@ -47,6 +48,7 @@ export const useCartStore = defineStore('cart', () => {
       id: item.id,
       product: item.product,
       product_name: item.product_name,
+      product_image: item.product_image,
       price: Number(item.price),
       quantity: Number(item.quantity),
       product_stock: Number(item.product_stock)
@@ -78,7 +80,6 @@ export const useCartStore = defineStore('cart', () => {
           quantity: Number(item.quantity),
           product_stock: Number(item.product_stock)
         }))
-        console.log('Cart loaded from localStorage:', items.value)
       } else {
         items.value = []
       }
@@ -90,7 +91,6 @@ export const useCartStore = defineStore('cart', () => {
   const saveLocal = () => {
     if (!import.meta.client) return
     localStorage.setItem('cart', JSON.stringify(items.value))
-    console.log('Cart saved to localStorage:', items.value)
   }
 
   // =============================
@@ -114,7 +114,9 @@ export const useCartStore = defineStore('cart', () => {
       const res = await $api.get<CartResponse>('/cart/')
       setCart(res.data)
       // После успешной загрузки с сервера очищаем localStorage
-      localStorage.removeItem('cart')
+      if (import.meta.client) {
+        localStorage.removeItem('cart')
+      }
     } catch (e: any) {
       if (e.response?.status === 401) {
         loadLocal()
@@ -154,6 +156,7 @@ export const useCartStore = defineStore('cart', () => {
           id: Date.now(), // временный ID для localStorage
           product: productId,
           product_name: product.name,
+          product_image: product.images?.[0]?.image || '/images/productPreview.png',
           price: Number(product.price),
           quantity: quantity,
           product_stock: product.stock
@@ -181,6 +184,7 @@ export const useCartStore = defineStore('cart', () => {
           id: res.data.id,
           product: res.data.product,
           product_name: res.data.product_name,
+          product_image: res.data.product_image,
           price: Number(res.data.price),
           quantity: Number(res.data.quantity),
           product_stock: Number(res.data.product_stock)
@@ -281,8 +285,6 @@ export const useCartStore = defineStore('cart', () => {
           quantity: item.quantity
         }))
 
-        console.log('Syncing cart items:', itemsToSync)
-
         // Отправляем все товары одним запросом
         const response = await $api.post('/cart/sync/', {
           items: itemsToSync
@@ -294,9 +296,10 @@ export const useCartStore = defineStore('cart', () => {
         }
 
         // Очищаем localStorage после успешной синхронизации
-        localStorage.removeItem('cart')
+        if (import.meta.client) {
+          localStorage.removeItem('cart')
+        }
 
-        console.log('Cart synced to server successfully', response.data.sync_results)
         return response.data
 
       } catch (e) {

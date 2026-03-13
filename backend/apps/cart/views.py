@@ -1,24 +1,27 @@
-from django.shortcuts import render
-
-# Create your views here.
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
-from .models import Cart, CartItem
-from .serializers import CartSerializer, CartItemSerializer
-from apps.shop.models import Product
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from rest_framework.permissions import IsAuthenticated
+from .models import Cart, CartItem
+from .serializers import CartItemSerializer
+from apps.shop.models import Product
+
 
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        cart = request.user.cart
-        serializer = CartSerializer(cart)
-        return Response(serializer.data)
+        items = (
+            CartItem.objects.filter(cart__user=request.user)
+            .select_related("product")
+            .prefetch_related("product__images")
+        )
+
+        serializer = CartItemSerializer(items, many=True, context={"request": request})
+
+        return Response({"items": serializer.data})
+
 
 class AddToCartView(APIView):
     permission_classes = [IsAuthenticated]
@@ -27,19 +30,17 @@ class AddToCartView(APIView):
         product_id = request.data.get("product_id")
         quantity = int(request.data.get("quantity", 1))
 
-        cart = request.user.cart
-        product = Product.objects.get(id=product_id)
+        try:
+            product = Product.objects.only("id", "price", "stock").get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=404)
 
         if quantity > product.stock:
-            return Response(
-                {"error": "Недостаточно товара на складе"},
-                status=400
-            )
+            return Response({"error": "Недостаточно товара на складе"}, status=400)
 
-        item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product
-        )
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+
+        item, created = CartItem.objects.get_or_create(cart=cart, product=product)
 
         if created:
             item.quantity = quantity
@@ -47,134 +48,134 @@ class AddToCartView(APIView):
             new_quantity = item.quantity + quantity
 
             if new_quantity > product.stock:
-                return Response(
-                    {"error": "Недостаточно товара"},
-                    status=400
-                )
+                return Response({"error": "Недостаточно товара"}, status=400)
 
             item.quantity = new_quantity
 
         item.save()
 
-        return Response({"success": True})
+        serializer = CartItemSerializer(item, context={"request": request})
+
+        return Response(serializer.data)
+
 
 class RemoveCartItemView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, item_id):
-        # Сначала получаем объект
-        item = CartItem.objects.filter(
-            id=item_id,
-            cart__user=request.user  # используем cart__user как в UpdateCartItemView
-        ).first()
-        
-        # Проверяем, существует ли объект
+
+        item = CartItem.objects.filter(id=item_id, cart__user=request.user).first()
+
         if not item:
             return Response({"error": "Not found"}, status=404)
-        
-        # Удаляем объект
+
         item.delete()
-        
+
         return Response({"status": "removed", "success": True})
+
 
 class UpdateCartItemView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, item_id):
+
         quantity = int(request.data.get("quantity", 1))
 
-        item = CartItem.objects.filter(
-            id=item_id,
-            cart__user=request.user
-        ).select_related("product").first()
+        item = (
+            CartItem.objects.filter(id=item_id, cart__user=request.user)
+            .select_related("product")
+            .first()
+        )
 
         if not item:
             return Response({"error": "Not found"}, status=404)
 
         if quantity > item.product.stock:
-            return Response(
-                {"error": "Недостаточно товара"},
-                status=400
-            )
+            return Response({"error": "Недостаточно товара"}, status=400)
 
         item.quantity = quantity
         item.save()
 
-        return Response({"success": True})
-    
+        serializer = CartItemSerializer(item, context={"request": request})
+
+        return Response(serializer.data)
+
+
 class CartSyncView(APIView):
     """Синхронизация локальной корзины с сервером"""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """
-        POST /api/cart/sync/
-        Body: {"items": [{"product_id": 1, "quantity": 2}, ...]}
-        """
-        items = request.data.get('items', [])
-        
+
+        items = request.data.get("items", [])
+
         if not isinstance(items, list):
             return Response(
-                {"error": "items must be a list"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "items must be a list"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Получаем или создаем корзину пользователя
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        
-        results = {
-            'added': [],
-            'updated': [],
-            'failed': []
-        }
-        
-        # Получаем все существующие товары в корзине
-        existing_items = {item.product_id: item for item in cart.items.all()}
-        
+
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+
+        results = {"added": [], "updated": [], "failed": []}
+
+        existing_items = {item.product_id: item for item in cart.items.select_related("product")}
+
         for item in items:
-            product_id = item.get('product_id') or item.get('product')
-            quantity = item.get('quantity', 1)
-            
+
+            product_id = item.get("product_id") or item.get("product")
+            quantity = item.get("quantity", 1)
+
             if not product_id:
-                results['failed'].append({
-                    'product_id': None,
-                    'error': 'Missing product_id'
-                })
+                results["failed"].append(
+                    {"product_id": None, "error": "Missing product_id"}
+                )
                 continue
-                
+
             try:
+                product = Product.objects.get(id=product_id)
+
+                if quantity > product.stock:
+                    results["failed"].append(
+                        {"product_id": product_id, "error": "Not enough stock"}
+                    )
+                    continue
+
                 if product_id in existing_items:
-                    # Обновляем существующий товар
+
                     cart_item = existing_items[product_id]
                     cart_item.quantity = quantity
                     cart_item.save()
-                    results['updated'].append({
-                        'product_id': product_id,
-                        'quantity': quantity
-                    })
-                else:
-                    # Создаем новый товар
-                    cart_item = CartItem.objects.create(
-                        cart=cart,
-                        product_id=product_id,
-                        quantity=quantity
+
+                    results["updated"].append(
+                        {"product_id": product_id, "quantity": quantity}
                     )
-                    results['added'].append({
-                        'product_id': product_id,
-                        'quantity': quantity
-                    })
-                    
-            except Exception as e:
-                results['failed'].append({
-                    'product_id': product_id,
-                    'error': str(e)
-                })
-        
-        # Возвращаем обновленную корзину с использованием вашего сериализатора
-        cart_items = cart.items.all().select_related('product')
-        serializer = CartItemSerializer(cart_items, many=True)
-        
-        return Response({
-            'items': serializer.data,
-            'sync_results': results
-        }, status=status.HTTP_200_OK)
+
+                else:
+
+                    CartItem.objects.create(
+                        cart=cart, product=product, quantity=quantity
+                    )
+
+                    results["added"].append(
+                        {"product_id": product_id, "quantity": quantity}
+                    )
+
+            except Product.DoesNotExist:
+
+                results["failed"].append(
+                    {"product_id": product_id, "error": "Product not found"}
+                )
+
+        cart_items = (
+            CartItem.objects.filter(cart__user=request.user)
+            .select_related("product")
+            .prefetch_related("product__images")
+            .order_by("id")
+        )
+
+        serializer = CartItemSerializer(
+            cart_items, many=True, context={"request": request}
+        )
+
+        return Response({"items": serializer.data, "sync_results": results})

@@ -6,7 +6,8 @@ import { useProductPreviewModalStore } from '~/stores/productPreviewModal'
 const wishlist = useWishlistStore()
 const productsStore = useProductsStore()
 const previewModal = useProductPreviewModalStore()
-const toast = useToast() // <-- Создаем тост в setup
+const toast = useToast()
+const { requireAuth } = useRequireAuth()
 
 // Состояния загрузки
 const loading = ref(true)
@@ -15,7 +16,7 @@ const error = ref<string | null>(null)
 // Инициализируем wishlist
 onMounted(async () => {
   try {
-    await wishlist.init() // <-- Вызываем init()
+    await wishlist.init()
     
     // Загружаем товары, если их нет
     if (!productsStore.items.length) {
@@ -41,13 +42,13 @@ const wishlistProducts = computed(() => {
 const removeFromWishlist = async (productId: number) => {
   try {
     await wishlist.removeFromWishlist(productId)
-    toast.add({ // <-- Используем toast из setup
+    toast.add({
       title: 'Removed',
       description: 'Product removed from wishlist',
       color: 'success'
     })
   } catch (err) {
-    toast.add({ // <-- Используем toast из setup
+    toast.add({
       title: 'Error',
       description: 'Failed to remove product',
       color: 'error'
@@ -55,35 +56,37 @@ const removeFromWishlist = async (productId: number) => {
   }
 }
 
-const shareWishlist = async () => {
-  if (!wishlist.items.length) {
-    toast.add({ // <-- Используем toast из setup
-      title: 'Empty',
-      description: 'Your wishlist is empty',
-      color: 'warning'
-    })
-    return
-  }
+const handleShareWishlist = () => {
+  requireAuth(async () => {
+    if (!wishlist.items.length) {
+      toast.add({
+        title: 'Empty',
+        description: 'Your wishlist is empty',
+        color: 'warning'
+      })
+      return
+    }
 
-  try {
-    const share = await wishlist.generateShare()
-    if (!share?.token) return
+    try {
+      const share = await wishlist.generateShare()
+      if (!share?.token) return
 
-    const url = `${window.location.origin}/wishlist/share/${share.token}`
-    await navigator.clipboard.writeText(url)
+      const url = `${window.location.origin}/wishlist/share/${share.token}`
+      await navigator.clipboard.writeText(url)
 
-    toast.add({ // <-- Используем toast из setup
-      title: 'Link copied',
-      description: 'Wishlist link copied to clipboard',
-      color: 'success'
-    })
-  } catch (err) {
-    toast.add({ // <-- Используем toast из setup
-      title: 'Error',
-      description: 'Failed to generate share link',
-      color: 'error'
-    })
-  }
+      toast.add({
+        title: 'Link copied',
+        description: 'Wishlist link copied to clipboard',
+        color: 'success'
+      })
+    } catch (err) {
+      toast.add({
+        title: 'Error',
+        description: 'Failed to generate share link',
+        color: 'error'
+      })
+    }
+  })
 }
 
 const openPreview = (product: any) => {
@@ -109,8 +112,7 @@ if (import.meta.server) {
       <UButton
         icon="i-heroicons-share"
         variant="soft"
-        :disabled="!wishlist.items.length"
-        @click="shareWishlist"
+        @click="handleShareWishlist"
       >
         Share
       </UButton>
@@ -143,7 +145,7 @@ if (import.meta.server) {
       </UButton>
     </div>
 
-    <!-- Список товаров - в стиле products.vue -->
+    <!-- Список товаров -->
     <div
       v-else
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -154,7 +156,7 @@ if (import.meta.server) {
         class="relative flex flex-col justify-between cursor-pointer hover:shadow-lg transition"
         @click="openPreview(product)"
       >
-        <!-- Кнопка удаления из избранного (вместо добавления) -->
+        <!-- Кнопка удаления из избранного -->
         <div class="absolute top-2 right-2 z-20" @click.stop="removeFromWishlist(product.id)">
           <UButton
             icon="i-heroicons-heart-solid"
@@ -203,7 +205,7 @@ if (import.meta.server) {
         </div>
 
         <div class="flex justify-between items-center mt-4">
-          <AppMoney class="text-primary font-bold text-xl" :value="product.price" />
+          <AppMoney class="tabular-nums text-primary font-bold text-xl" :value="product.price" />
 
           <AppAddToCartButton
             :productId="product.id"

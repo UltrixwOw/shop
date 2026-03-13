@@ -5,23 +5,16 @@ from apps.shop.models import Product
 
 class CartItemSerializer(serializers.ModelSerializer):
 
-    product_name = serializers.CharField(
-        source="product.name",
-        read_only=True
-    )
+    product_name = serializers.CharField(source="product.name", read_only=True)
 
     price = serializers.DecimalField(
-        source="product.price",
-        max_digits=10,
-        decimal_places=2,
-        read_only=True
+        source="product.price", max_digits=10, decimal_places=2, read_only=True
     )
 
-    # ✅ ВАЖНО — поле нужно объявить
-    product_stock = serializers.IntegerField(
-        source="product.stock",
-        read_only=True
-    )
+    product_stock = serializers.IntegerField(source="product.stock", read_only=True)
+
+    # ✅ Добавляем поле для изображения товара
+    product_image = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
@@ -32,7 +25,32 @@ class CartItemSerializer(serializers.ModelSerializer):
             "price",
             "quantity",
             "product_stock",
+            "product_image",  # <-- Добавлено
         ]
+
+    def get_product_image(self, obj):
+
+        image = None
+
+        if hasattr(obj.product, "_prefetched_objects_cache"):
+            images = obj.product._prefetched_objects_cache.get("images")
+            if images:
+                image = images[0]
+
+        if not image:
+            image = obj.product.images.first()
+
+        if image:
+            url = image.image.url
+        else:
+            return self.allow_null
+
+        request = self.context.get("request")
+
+        if request:
+            return request.build_absolute_uri(url)
+
+        return url
 
 
 class CartSerializer(serializers.ModelSerializer):

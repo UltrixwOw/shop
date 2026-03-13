@@ -28,6 +28,12 @@ class CartItem(models.Model):
 
     quantity = models.PositiveIntegerField(default=1)
 
+    class Meta:
+        unique_together = ["cart", "product"]
+        indexes = [
+            models.Index(fields=["cart", "product"])
+        ]
+
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
 

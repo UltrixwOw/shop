@@ -53,7 +53,7 @@ class OrderService:
         order = Order.objects.create(
             user=user,
             address=address,
-            status="pending"
+            status="paid"
         )
 
         # Уменьшаем склад
