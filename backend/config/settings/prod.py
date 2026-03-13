@@ -1,12 +1,52 @@
 from .base import *
 
 DEBUG = False
-ALLOWED_HOSTS = ["yourdomain.com"]
+ALLOWED_HOSTS = [
+    "meloni-backend.onrender.com",
+    "meloni-frontend.onrender.com",
+]
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static"
+]
 
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
 CORS_ALLOWED_ORIGINS = [
-    "https://your-frontend.com",
+    "https://meloni-frontend.onrender.com",
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://meloni-frontend.onrender.com"
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Настройки сессий и куки
+SESSION_COOKIE_SAMESITE = 'Lax'  # или 'None' если нужно
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = True  # True только для HTTPS
+CSRF_COOKIE_SECURE = True
