@@ -147,7 +147,7 @@ class LoginView(APIView):
             value=str(refresh),
             httponly=True,
             secure=True,  # "False", True в production (HTTPS)
-            samesite="False",  # "Lax", "False" - Критично для кросс-доменов!
+            samesite="None",  # "Lax", "None" - Критично для кросс-доменов!
             max_age=7 * 24 * 60 * 60,
             domain=None,  # Автоматически
             path="/",
