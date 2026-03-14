@@ -14,6 +14,11 @@ from apps.orders.services import OrderService
 from rest_framework.generics import RetrieveAPIView
 from django.shortcuts import get_object_or_404
 
+# log
+
+import logging
+logger = logging.getLogger(__name__)
+
 # apps/orders/views.py
 
 
@@ -21,6 +26,13 @@ class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # Логируем информацию о пользователе и запросе
+        logger.error(f"🔥🔥🔥 CHECKOUT REQUEST FROM USER: {request.user}")
+        logger.error(f"User ID: {request.user.id}")
+        logger.error(f"Is authenticated: {request.user.is_authenticated}")
+        logger.error(f"Auth header: {request.headers.get('Authorization', 'Not present')}")
+        logger.error(f"Request data: {request.data}")
+        
         serializer = CheckoutSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
