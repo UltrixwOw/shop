@@ -16,20 +16,20 @@ const { data: addresses } = await useAsyncData("addresses", async () => {
 });
 
 const newAddress = reactive({
-  full_name: '',
-  street: '',
-  city: '',
-  postal_code: '',
-  country: '',
-  phone: '',
-  is_default: false
-})
+  full_name: "",
+  street: "",
+  city: "",
+  postal_code: "",
+  country: "",
+  phone: "",
+  is_default: false,
+});
 
 const createAddress = async () => {
-  const res = await $api.post('/addresses/', newAddress)
-  addresses.value.push(res.data)
-  selectedAddress.value = res.data.id
-}
+  const res = await $api.post("/addresses/", newAddress);
+  addresses.value.push(res.data);
+  selectedAddress.value = res.data.id;
+};
 
 watch(
   addresses,
@@ -43,14 +43,24 @@ watch(
 );
 
 const submitOrder = async () => {
+  console.log("Наличие address_id:", selectedAddress.value)
   if (!selectedAddress.value) return;
 
   try {
     loading.value = true;
 
-    const res = await $api.post("/orders/checkout/", {
+    console.log("Отправляю address_id:", selectedAddress.value);
+    console.log("Тип данных:", typeof selectedAddress.value);
+
+    const payload = {
       address_id: selectedAddress.value,
-    });
+    };
+
+    console.log("Полный payload:", JSON.stringify(payload, null, 2));
+
+    const res = await $api.post("/orders/checkout/", payload);
+
+    console.log("Ответ от сервера:", res.data);
 
     const uuid = res.data?.order_uuid;
     if (!uuid) throw new Error("Order UUID missing");
@@ -58,7 +68,13 @@ const submitOrder = async () => {
     await cart.fetchCart();
     router.push(`/order-success/${uuid}`);
   } catch (e: any) {
-    console.error(e.response?.data || e.message);
+    console.error("Детальная ошибка:", {
+      status: e.response?.status,
+      statusText: e.response?.statusText,
+      data: e.response?.data,
+      headers: e.response?.headers,
+      config: e.config,
+    });
   } finally {
     loading.value = false;
   }
