@@ -46,8 +46,8 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Настройки сессий и куки
-SESSION_COOKIE_SAMESITE = 'Lax'  # или 'None' если нужно
-CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'None'  # или 'None' если нужно Lax для единого адреса
+CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True  # True только для HTTPS
 CSRF_COOKIE_SECURE = True
 

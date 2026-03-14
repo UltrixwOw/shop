@@ -14,7 +14,7 @@ class UserManager(BaseUserManager):
             extra_fields['username'] = email.split('@')[0]
 
         # Устанавливаем значения по умолчанию
-        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("is_active", True) # False
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         

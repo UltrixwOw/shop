@@ -172,4 +172,11 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    
+    # 🔥 Добавляем настройки для куки (важно для Render!)
+    "AUTH_COOKIE": "refresh_token",  # Имя куки для refresh токена
+    "AUTH_COOKIE_SECURE": True,      # Только по HTTPS (на Render обязательно)
+    "AUTH_COOKIE_HTTP_ONLY": True,   # Недоступен из JavaScript (безопасно)
+    "AUTH_COOKIE_PATH": "/",          # Доступен для всего сайта
+    "AUTH_COOKIE_SAMESITE": "None",   # Критично для кросс-доменных запросов!
 }

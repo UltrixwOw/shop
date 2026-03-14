@@ -28,7 +28,7 @@ class RegisterView(APIView):
         if not email or not password:
             return Response(
                 {"error": "Email and password required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user = User.objects.filter(email=email).first()
@@ -38,29 +38,21 @@ class RegisterView(APIView):
             if not user.is_verified:
                 self._send_verification_email(request, user)
                 return Response(
-                    {"message": "Verification email resent"},
-                    status=status.HTTP_200_OK
+                    {"message": "Verification email resent"}, status=status.HTTP_200_OK
                 )
             return Response(
-                {"error": "User already registered"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "User already registered"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # 🆕 Новый пользователь
-        user = User.objects.create_user(
-            email=email,
-            password=password
-        )
+        user = User.objects.create_user(email=email, password=password)
         user.is_active = False
         user.is_verified = False
         user.save()
 
         self._send_verification_email(request, user)
 
-        return Response(
-            {"message": "Check your email"},
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"message": "Check your email"}, status=status.HTTP_201_CREATED)
 
     def _send_verification_email(self, request, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -76,6 +68,7 @@ class RegisterView(APIView):
             from_email=None,
             recipient_list=[user.email],
         )
+
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
@@ -100,7 +93,8 @@ class VerifyEmailView(APIView):
             return Response({"message": "Email verified"})
 
         return Response({"error": "Link expired"}, status=400)
-    
+
+
 class ResendVerificationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -113,7 +107,8 @@ class ResendVerificationView(APIView):
         RegisterView()._send_verification_email(request, user)
 
         return Response({"message": "Verification email resent"})
-    
+
+
 class CheckEmailView(APIView):
     permission_classes = [AllowAny]
 
@@ -124,7 +119,8 @@ class CheckEmailView(APIView):
             return Response({"exists": True})
 
         return Response({"exists": False}, status=404)
-    
+
+
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -143,22 +139,23 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        response = Response({
-            "access": access_token
-        })
+        response = Response({"access": access_token})
 
         # 🔐 Refresh в HttpOnly cookie
         response.set_cookie(
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,  # True в production (HTTPS)
-            samesite="Lax",
+            secure=True,  # "False", True в production (HTTPS)
+            samesite="False",  # "Lax", "False" - Критично для кросс-доменов!
             max_age=7 * 24 * 60 * 60,
+            domain=None,  # Автоматически
+            path="/",
         )
 
         return response
-    
+
+
 class RefreshView(APIView):
     permission_classes = [AllowAny]
 
@@ -175,23 +172,27 @@ class RefreshView(APIView):
             raise AuthenticationFailed("Invalid refresh token")
 
         return Response({"access": access})
-    
+
+
 class LogoutView(APIView):
     def post(self, request):
         response = Response({"message": "Logged out"})
-        response.delete_cookie("refresh_token")
+        response.delete_cookie("refresh_token", samesite="None", secure=True) # for https samesite="None", secure=True
         return response
-    
+
+
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        return Response({
-            "id": user.id,
-            "email": user.email,
-            "username": user.username,  # Добавляем username
-            "role": getattr(user, "role", "customer"),
-            "is_verified": user.is_verified,
-        })
+        return Response(
+            {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,  # Добавляем username
+                "role": getattr(user, "role", "customer"),
+                "is_verified": user.is_verified,
+            }
+        )
