@@ -10,9 +10,6 @@ CHANNEL_LAYERS = {
     }
 }
 
-# config/settings/dev.py
-from .base import *
-
 DEBUG = True
 ALLOWED_HOSTS = ['*']  # или ['127.0.0.1', 'localhost']
 

@@ -1,4 +1,5 @@
 export const useApi = () => {
+  console.log('Start $fetch api')
   const config = useRuntimeConfig()
   
   const get = async (url: string) => {

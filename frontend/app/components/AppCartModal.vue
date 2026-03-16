@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, watch, computed } from "vue";
 import { useDebounceFn } from "@vueuse/core";
 import { useCartStore } from "~/stores/cart";
 import { useCartModalStore } from "~/stores/cartModal";
@@ -7,52 +7,105 @@ import { useCartModalStore } from "~/stores/cartModal";
 const cart = useCartStore();
 const modal = useCartModalStore();
 
+// Инициализируем store при монтировании
 onMounted(async () => {
-  await cart.fetchCart()
+  await cart.init() // Используем init вместо fetchCart
 })
 
+// Создаем локальное состояние для количества
 const localQty = reactive<Record<number, number>>({});
 
+// Синхронизируем localQty с cart.items
 watch(
   () => cart.items,
   (items) => {
+    if (!items || items.length === 0) {
+      // Очищаем localQty если корзина пуста
+      Object.keys(localQty).forEach(key => {
+        delete localQty[Number(key)]
+      })
+      return
+    }
+
+    // Обновляем localQty для каждого товара
     items.forEach((item) => {
-      if (!localQty[item.id]) {
-        localQty[item.id] = item.quantity;
+      if (item && item.id) {
+        // Если товара нет в localQty или количество изменилось
+        if (!localQty[item.id] || localQty[item.id] !== item.quantity) {
+          localQty[item.id] = item.quantity;
+        }
       }
     });
+
+    // Удаляем из localQty товары, которых больше нет в корзине
+    const currentIds = new Set(items.map(i => i.id))
+    Object.keys(localQty).forEach(id => {
+      if (!currentIds.has(Number(id))) {
+        delete localQty[Number(id)]
+      }
+    })
   },
-  { immediate: true }
+  { 
+    immediate: true,
+    deep: true // Следим за глубокими изменениями
+  }
 );
 
-const debouncedUpdate = useDebounceFn((id: number, qty: number) => {
-  cart.updateQuantity(id, qty);
+// Debounced update для избежания частых запросов
+const debouncedUpdate = useDebounceFn(async (id: number, qty: number) => {
+  try {
+    await cart.updateQuantity(id, qty);
+  } catch (error) {
+    console.error('Failed to update quantity:', error);
+    // Восстанавливаем предыдущее значение при ошибке
+    const item = cart.items.find(i => i.id === id);
+    if (item) {
+      localQty[id] = item.quantity;
+    }
+  }
 }, 400);
 
 const update = (item: any, value: number | null) => {
-  if (!value) value = 1;
-
-  if (value < 1) value = 1;
+  if (!value || value < 1) value = 1;
 
   if (value > item.product_stock) {
     value = item.product_stock;
   }
 
+  // Обновляем локальное значение
   localQty[item.id] = value;
+  
+  // Отправляем на сервер с debounce
   debouncedUpdate(item.id, value);
 };
 
-const remove = (id: number) => {
-  cart.removeFromCart(id);
+const remove = async (id: number) => {
+  try {
+    await cart.removeFromCart(id);
+    // Удаляем из localQty
+    delete localQty[id];
+  } catch (error) {
+    console.error('Failed to remove item:', error);
+  }
 };
 
 const checkoutOrder = async () => {
   if (cart.isEmpty) return;
   modal.close();
-  navigateTo("/checkout");
+  await navigateTo("/checkout");
 };
 
-console.log(cart.items);
+// Вычисляемое свойство для итоговой суммы с учетом локальных изменений
+const totalWithLocalQty = computed(() => {
+  return cart.items.reduce((sum, item) => {
+    const qty = localQty[item.id] ?? item.quantity;
+    return sum + item.price * qty;
+  }, 0);
+});
+
+// Для отладки
+// console.log('Cart items:', cart.items);
+// console.log('Local quantities:', localQty);
 </script>
 
 <template>
@@ -63,13 +116,19 @@ console.log(cart.items);
     class="max-w-3xl"
   >
     <template #body>
+      <!-- Loading state -->
+      <div v-if="cart.loading" class="text-center py-10">
+        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 mx-auto animate-spin text-gray-400" />
+        <p class="mt-2 text-gray-500">Загрузка корзины...</p>
+      </div>
+
       <!-- EMPTY -->
-      <div v-if="cart.isEmpty" class="text-gray-500 text-center py-10">
+      <div v-else-if="cart.isEmpty" class="text-gray-500 text-center py-10">
         <UIcon
           name="i-heroicons-shopping-bag"
           class="w-16 h-16 mx-auto mb-4 text-gray-300"
         />
-        <p class="text-lg">Your cart is empty.</p>
+        <p class="text-lg">Корзина пуста</p>
         <UButton
           to="/products"
           color="primary"
@@ -77,7 +136,7 @@ console.log(cart.items);
           class="mt-4"
           @click="modal.close()"
         >
-          Browse Products
+          Перейти к товарам
         </UButton>
       </div>
 
@@ -124,14 +183,14 @@ console.log(cart.items);
                 <div class="relative">
                   <AppMoney
                     class="tabular-nums text-gray-400 text-lg relative z-2"
-                    :value="Number(item.price) * (localQty[item.id] ?? item.quantity)"
+                    :value="item.price * (localQty[item.id] ?? item.quantity)"
                   />
                   <!-- MAX STOCK MESSAGE -->
                   <p
                     v-if="localQty[item.id] >= item.product_stock"
-                    class="text-xs text-red-500 absolute"
+                    class="text-xs text-red-500 absolute whitespace-nowrap"
                   >
-                    Max stock reached
+                    Максимум {{ item.product_stock }}
                   </p>
                 </div>
               </div>
@@ -143,6 +202,7 @@ console.log(cart.items);
               variant="ghost"
               icon="i-heroicons-trash"
               class="absolute top-2 right-2 z-20"
+              :loading="cart.loading"
               @click="remove(item.id)"
             />
           </div>
@@ -150,27 +210,24 @@ console.log(cart.items);
       </div>
     </template>
 
-    <template v-if="!cart.isEmpty" #footer>
-      <div class="flex w-full gap-4 justify-between">
-        <!--<UButton
-          variant="ghost"
-          block
-          icon="i-heroicons-shopping-bag"
-          to="/products"
-          @click="modal.close()"
-        >
-          Продолжить покупки
-        </UButton> -->
+    <template v-if="!cart.isEmpty && !cart.loading" #footer>
+      <div class="flex w-full gap-4 justify-between items-center">
         <!-- TOTAL -->
-        <div class="flex relative md:flex-row md:justify-between md:items-center w-50 flex-col items-start">
-          <span class="text-md text-gray-400 absolute -top-3"> Итого: </span>
-
-          <span class="text-2xl font-bold text-primary pt-1">
-            <AppMoney :value="cart.totalPrice" />
+        <div class="flex flex-col">
+          <span class="text-sm text-gray-400">Итого:</span>
+          <span class="text-2xl font-bold text-primary">
+            <AppMoney :value="totalWithLocalQty" />
           </span>
         </div>
 
-        <UButton class="w-50" block size="lg" :disabled="cart.isEmpty" @click="checkoutOrder">
+        <UButton 
+          class="w-50" 
+          block 
+          size="lg" 
+          :disabled="cart.isEmpty" 
+          :loading="cart.loading"
+          @click="checkoutOrder"
+        >
           Оформить заказ
         </UButton>
       </div>
