@@ -177,7 +177,8 @@ class RefreshView(APIView):
 class LogoutView(APIView):
     def post(self, request):
         response = Response({"message": "Logged out"})
-        response.delete_cookie("refresh_token", samesite="None", secure=True) # for https samesite="None", secure=True
+        # Просто удаляем куку без лишних параметров
+        response.delete_cookie('refresh_token')
         return response
 
 

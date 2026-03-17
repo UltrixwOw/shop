@@ -2,21 +2,22 @@ import axios, { type AxiosInstance } from 'axios'
 import { defineNuxtPlugin, useRuntimeConfig, useRequestHeaders } from '#app'
 import { useAuthStore } from '~/stores/auth'
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(() => {
+
   const config = useRuntimeConfig()
   const auth = useAuthStore()
 
-  // 🔹 SSR cookie headers
-  const headers = useRequestHeaders(['cookie'])
+  // ✅ только для SSR
+  const headers = process.server
+    ? useRequestHeaders(['cookie'])
+    : undefined
 
-  // 🔹 основной axios
   const api: AxiosInstance = axios.create({
     baseURL: config.public.apiBase,
     withCredentials: true,
     headers
   })
 
-  // 🔹 axios без интерцепторов (для refresh)
   const plainAxios = axios.create({
     baseURL: config.public.apiBase,
     withCredentials: true,
@@ -26,19 +27,28 @@ export default defineNuxtPlugin((nuxtApp) => {
   // =====================
   // REQUEST
   // =====================
+
   api.interceptors.request.use((config) => {
+
     if (auth.accessToken) {
-      config.headers.Authorization = `Bearer ${auth.accessToken}`
+      config.headers?.set(
+        'Authorization',
+        `Bearer ${auth.accessToken}`
+      )
     }
+
     return config
   })
 
   // =====================
   // RESPONSE
   // =====================
+
   api.interceptors.response.use(
     (response) => response,
+
     async (error) => {
+
       const originalRequest = error.config
 
       if (
@@ -53,9 +63,13 @@ export default defineNuxtPlugin((nuxtApp) => {
       }
 
       if (error.response?.status === 401) {
+
         originalRequest._retry = true
 
         try {
+
+          console.log('🔄 refreshing token')
+
           const refreshRes = await plainAxios.post('/users/refresh/')
           const newAccess = refreshRes.data.access
 
@@ -64,10 +78,17 @@ export default defineNuxtPlugin((nuxtApp) => {
           originalRequest.headers.Authorization = `Bearer ${newAccess}`
 
           return api(originalRequest)
+
         } catch (refreshError) {
+
+          console.log('❌ refresh failed')
+
           auth.clearAuthState()
+
           return Promise.reject(refreshError)
+
         }
+
       }
 
       return Promise.reject(error)
@@ -79,4 +100,5 @@ export default defineNuxtPlugin((nuxtApp) => {
       api
     }
   }
+
 })

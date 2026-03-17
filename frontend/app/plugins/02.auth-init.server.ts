@@ -1,21 +1,33 @@
-import { defineNuxtPlugin } from '#app'
 import { useAuthStore } from '~/stores/auth'
 
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(async (nuxtApp) => {
+
   const auth = useAuthStore()
-  const { $api } = useNuxtApp()
 
   if (auth.initialized) return
 
+  const api = nuxtApp.$api
+
+  console.log('🖥 SSR AUTH INIT')
+
   try {
-    const res = await $api.post('/users/refresh/')
+
+    const res = await api.post('/users/refresh/')
+
     auth.setAccessToken(res.data.access)
 
-    const me = await $api.get('/users/me/')
-    auth.user = me.data
+    const me = await api.get('/users/me/')
+
+    auth.setUser(me.data)
+
   } catch (e) {
+
     auth.clearAuthState()
+
   } finally {
+
     auth.setInitialized()
+
   }
+
 })
