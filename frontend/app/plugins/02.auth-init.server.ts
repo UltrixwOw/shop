@@ -1,12 +1,16 @@
 import { useAuthStore } from '~/stores/auth'
+import type { AxiosInstance } from 'axios'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
 
   const auth = useAuthStore()
+  const headers = useRequestHeaders(['cookie'])
 
+  console.log('🔥 SSR COOKIE:', headers.cookie)
+  console.log('auth.initialized == true, return, ', auth.initialized)
   if (auth.initialized) return
 
-  const api = nuxtApp.$api
+  const api = nuxtApp.$api as AxiosInstance
 
   console.log('🖥 SSR AUTH INIT')
 

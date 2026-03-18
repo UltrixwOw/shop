@@ -160,6 +160,7 @@ class RefreshView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        print("🔥 REFRESH COOKIES:", request.COOKIES)
         refresh_token = request.COOKIES.get("refresh_token")
 
         if not refresh_token:

@@ -4,6 +4,8 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "meloni-backend.onrender.com",
     "meloni-frontend.onrender.com",
+    "menlonishop.cc",
+    "www.melonishop.cc"
 ]
 
 STATICFILES_DIRS = [
@@ -16,10 +18,14 @@ CSRF_COOKIE_SECURE = True
 
 CORS_ALLOWED_ORIGINS = [
     "https://meloni-frontend.onrender.com",
+    "menlonishop.cc",
+    "www.melonishop.cc"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://meloni-frontend.onrender.com"
+    "menlonishop.cc",
+    "www.melonishop.cc"
 ]
 
 CORS_ALLOW_CREDENTIALS = True

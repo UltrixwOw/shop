@@ -1,5 +1,6 @@
 import { useAuthStore } from '~/stores/auth'
 import { useCartStore } from '~/stores/cart'
+import type { AxiosInstance } from 'axios'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
 
@@ -10,7 +11,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   if (!auth.isAuthenticated) return
 
-  const api = nuxtApp.$api
+  const api = nuxtApp.$api as AxiosInstance
 
   try {
 
