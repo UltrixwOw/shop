@@ -2,10 +2,10 @@ from .base import *
 
 DEBUG = False
 ALLOWED_HOSTS = [
-    "https://meloni-backend.onrender.com",
-    "https://meloni-frontend.onrender.com",
-    "https://melonishop.cc",
-    "https://www.melonishop.cc"
+    "meloni-backend.onrender.com",
+    "meloni-frontend.onrender.com",
+    "melonishop.cc",
+    "www.melonishop.cc"
 ]
 
 STATICFILES_DIRS = [
