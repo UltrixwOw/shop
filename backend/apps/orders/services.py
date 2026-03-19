@@ -23,63 +23,127 @@ def broadcast_stock(product):
     )
 
 
+import logging
+import traceback
+logger = logging.getLogger(__name__)
+
 class OrderService:
 
     @staticmethod
     @transaction.atomic
     def checkout(user, address, cart):
 
-        if not cart:
-            raise ValidationError("Cart not found")
+        logger.error("🚀 ORDER SERVICE START")
 
-        cart_items = (
-            cart.items
-            .select_related("product")
-            .select_for_update()
-        )
+        try:
+            if not cart:
+                logger.error("💥 CART IS NONE")
+                raise ValidationError("Cart not found")
 
-        if not cart_items.exists():
-            raise ValidationError("Cart is empty")
-
-        total = 0
-
-        # Проверяем склад
-        for item in cart_items:
-            if item.quantity > item.product.stock:
-                raise ValidationError(
-                    f"{item.product.name} нет в нужном количестве"
-                )
-
-        order = Order.objects.create(
-            user=user,
-            address=address,
-            status="pending"
-        )
-
-        # Уменьшаем склад
-        for item in cart_items:
-
-            product = item.product
-
-            product.stock -= item.quantity
-            product.save()
-
-            # 🔥 realtime update
-            broadcast_stock(product)
-
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                product_name=product.name,
-                product_price=product.price,
-                quantity=item.quantity,
+            cart_items = (
+                cart.items
+                .select_related("product")
+                .select_for_update()
             )
 
-            total += product.price * item.quantity
+            count = cart_items.count()
+            logger.error(f"Cart items count: {count}")
 
-        order.total_price = total
-        order.save()
+            if count == 0:
+                logger.error("💥 CART EMPTY")
+                raise ValidationError("Cart is empty")
 
-        cart_items.delete()
+            total = 0
 
-        return order
+            # ✅ STOCK CHECK
+            for item in cart_items:
+                logger.error(f"Checking item: {item.id}")
+
+                if not item.product:
+                    logger.error("💥 PRODUCT IS NONE")
+                    raise ValidationError("Product missing")
+
+                logger.error(f"Product: {item.product.name}, stock={item.product.stock}, qty={item.quantity}")
+
+                if item.quantity > item.product.stock:
+                    logger.error("💥 NOT ENOUGH STOCK")
+                    raise ValidationError(
+                        f"{item.product.name} нет в нужном количестве"
+                    )
+
+            logger.error("✅ STOCK OK")
+
+            # ✅ CREATE ORDER
+            try:
+                order = Order.objects.create(
+                    user=user,
+                    address=address,
+                    status="pending"
+                )
+                logger.error(f"✅ ORDER CREATED: {order.id}")
+            except Exception as e:
+                logger.error(f"💥 ORDER CREATE ERROR: {e}")
+                traceback.print_exc()
+                raise
+
+            # ✅ LOOP ITEMS
+            for item in cart_items:
+                try:
+                    product = item.product
+
+                    logger.error(f"Updating stock for {product.name}")
+
+                    product.stock -= item.quantity
+                    product.save()
+
+                    logger.error("Stock updated")
+
+                    # 🔥 возможно тут падает
+                    try:
+                        broadcast_stock(product)
+                        logger.error("broadcast_stock OK")
+                    except Exception as e:
+                        logger.error(f"💥 broadcast_stock ERROR: {e}")
+
+                    OrderItem.objects.create(
+                        order=order,
+                        product=product,
+                        product_name=product.name,
+                        product_price=product.price,
+                        quantity=item.quantity,
+                    )
+
+                    logger.error("OrderItem created")
+
+                    total += product.price * item.quantity
+
+                except Exception as e:
+                    logger.error(f"💥 ITEM LOOP ERROR: {e}")
+                    traceback.print_exc()
+                    raise
+
+            # ✅ FINAL SAVE
+            try:
+                order.total_price = total
+                order.save()
+                logger.error(f"✅ TOTAL SAVED: {total}")
+            except Exception as e:
+                logger.error(f"💥 TOTAL SAVE ERROR: {e}")
+                raise
+
+            # ✅ CLEAR CART
+            try:
+                cart_items.delete()
+                logger.error("✅ CART CLEARED")
+            except Exception as e:
+                logger.error(f"💥 CART DELETE ERROR: {e}")
+
+            logger.error("🚀 ORDER SERVICE END OK")
+
+            return order
+
+        except Exception as e:
+            logger.error("💥💥💥 ORDER SERVICE CRASH")
+            logger.error(str(e))
+            traceback.print_exc()
+            raise

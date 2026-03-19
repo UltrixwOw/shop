@@ -22,46 +22,86 @@ logger = logging.getLogger(__name__)
 # apps/orders/views.py
 
 
+import traceback
+
+import traceback
+
 class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Логируем информацию о пользователе и запросе
-        logger.error(f"🔥🔥🔥 CHECKOUT REQUEST FROM USER: {request.user}")
-        logger.error(f"User ID: {request.user.id}")
-        logger.error(f"Is authenticated: {request.user.is_authenticated}")
-        logger.error(f"Auth header: {request.headers.get('Authorization', 'Not present')}")
-        logger.error(f"Request data: {request.data}")
-        
-        serializer = CheckoutSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-
-        address_id = serializer.validated_data["address_id"]
-        user = request.user
-
-        # безопасно получаем адрес
-        address = Address.objects.get(id=address_id, user=user)
+        logger.error("🔥🔥🔥 CHECKOUT START")
 
         try:
-            cart = (
-                Cart.objects.select_related("user")
-                .prefetch_related("items__product")
-                .get(user=user)
+            serializer = CheckoutSerializer(
+                data=request.data,
+                context={"request": request}
             )
-        except Cart.DoesNotExist:
-            raise ValidationError("Cart not found")
 
-        # создаём заказ через сервис
-        order = OrderService.checkout(user=user, address=address, cart=cart)
+            serializer.is_valid(raise_exception=True)
 
-        return Response(
-            {
-                "order_uuid": str(order.uuid),
-                "total_price": order.total_price,
-                "status": order.status,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+            logger.error("✅ SERIALIZER PASSED")
+
+            user = request.user
+            address = serializer.validated_data["address"]
+
+            logger.error(f"User: {user}")
+            logger.error(f"Address: {address.id}")
+
+            # CART
+            cart = Cart.objects.get(user=user)
+            logger.error(f"Cart ID: {cart.id}")
+
+            # SERVICE
+            order = OrderService.checkout(
+                user=user,
+                address=address,
+                cart=cart
+            )
+
+            logger.error("✅ ORDER SERVICE DONE")
+
+            # 🔥 UUID DEBUG
+            try:
+                logger.error(f"Order object: {order}")
+                logger.error(f"Order ID: {order.id}")
+                logger.error(f"Order UUID raw: {order.uuid}")
+                logger.error(f"Order UUID type: {type(order.uuid)}")
+
+                uuid = str(order.uuid)
+
+                logger.error(f"✅ UUID STRING: {uuid}")
+
+            except Exception as e:
+                logger.error(f"💥 UUID ERROR: {e}")
+                traceback.print_exc()
+                raise
+
+            # 🔥 RESPONSE DEBUG
+            try:
+                response_data = {
+                    "order_uuid": uuid,
+                    "total_price": order.total_price,
+                    "status": order.status,
+                }
+
+                logger.error(f"📦 RESPONSE DATA: {response_data}")
+
+            except Exception as e:
+                logger.error(f"💥 RESPONSE BUILD ERROR: {e}")
+                raise
+
+            return Response(response_data, status=201)
+
+        except Exception as e:
+            logger.error("💥💥💥 FINAL CHECKOUT ERROR")
+            logger.error(str(e))
+            traceback.print_exc()
+
+            return Response(
+                {"error": str(e)},
+                status=500
+            )
 
 
 class UserOrdersView(APIView):
