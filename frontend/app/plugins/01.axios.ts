@@ -10,18 +10,32 @@ export default defineNuxtPlugin(() => {
   // ✅ только для SSR
   const headers = process.server
     ? useRequestHeaders(['cookie'])
-    : undefined
+    : {}
 
-  const api: AxiosInstance = axios.create({
-    baseURL: process.server ? config.API_BASE_URL as string : config.public.apiBase as string,
+  const api = axios.create({
+    baseURL: process.server
+      ? config.API_BASE_URL as string
+      : config.public.apiBase as string,
+
     withCredentials: true,
-    headers
+
+    // 💣 ВАЖНО: безопасно прокидываем cookie
+    headers: process.server
+      ? { cookie: headers.cookie ?? '' }
+      : {}
   })
 
   const plainAxios = axios.create({
-    baseURL: config.public.apiBase,
+    baseURL: process.server
+      ? config.API_BASE_URL as string
+      : config.public.apiBase as string,
+
     withCredentials: true,
-    headers
+
+    // 💣 ВАЖНО: безопасно прокидываем cookie
+    headers: process.server
+      ? { cookie: headers.cookie ?? '' }
+      : {}
   })
 
   // =====================

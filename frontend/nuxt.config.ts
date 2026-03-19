@@ -7,8 +7,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   runtimeConfig: {
+    API_BASE_URL: 'https://meloni-backend.onrender.com/api',
     public: {
-      API_BASE_URL: 'https://meloni-backend.onrender.com/api',
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api'
     }
   },
