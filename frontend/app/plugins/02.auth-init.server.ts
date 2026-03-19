@@ -2,7 +2,7 @@ import { useAuthStore } from '~/stores/auth'
 import type { AxiosInstance } from 'axios'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
-
+  console.log('🔥 SSR PLUGIN LOADED', process.server)
   const auth = useAuthStore()
   const headers = useRequestHeaders(['cookie'])
 

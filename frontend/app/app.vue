@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+console.log('SSR?', process.server)
+</script>
 
 <template>
   <UApp>

@@ -23,7 +23,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://meloni-frontend.onrender.com"
+    "https://meloni-frontend.onrender.com",
     "https://melonishop.cc",
     "https://www.melonishop.cc"
 ]
