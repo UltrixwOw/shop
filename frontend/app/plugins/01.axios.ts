@@ -12,6 +12,20 @@ export default defineNuxtPlugin(() => {
     ? useRequestHeaders(['cookie'])
     : {}
 
+  /** http://127.0.0.1:8000/api  
+  const api = axios.create({
+    baseURL: config.public.apiBase as string,
+    withCredentials: true,
+    headers
+  })
+
+  const plainAxios = axios.create({
+    baseURL: config.public.apiBase as string,
+    withCredentials: true,
+    headers
+  })*/
+  
+  /** Render.com */
   const api = axios.create({
     baseURL: process.server
       ? config.API_BASE_URL as string
@@ -37,6 +51,7 @@ export default defineNuxtPlugin(() => {
       ? { cookie: headers.cookie ?? '' }
       : {}
   })
+  
 
   // =====================
   // REQUEST
