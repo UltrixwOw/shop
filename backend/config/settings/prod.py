@@ -4,7 +4,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "https://meloni-backend.onrender.com",
     "https://meloni-frontend.onrender.com",
-    "https://menlonishop.cc",
+    "https://melonishop.cc",
     "https://www.melonishop.cc"
 ]
 
@@ -18,13 +18,13 @@ CSRF_COOKIE_SECURE = True
 
 CORS_ALLOWED_ORIGINS = [
     "https://meloni-frontend.onrender.com",
-    "https://menlonishop.cc",
+    "https://melonishop.cc",
     "https://www.melonishop.cc"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://meloni-frontend.onrender.com"
-    "https://menlonishop.cc",
+    "https://melonishop.cc",
     "https://www.melonishop.cc"
 ]
 
