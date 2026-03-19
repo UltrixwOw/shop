@@ -13,7 +13,7 @@ export default defineNuxtPlugin(() => {
     : undefined
 
   const api: AxiosInstance = axios.create({
-    baseURL: config.public.apiBase,
+    baseURL: process.server ? config.API_BASE_URL as string : config.public.apiBase as string,
     withCredentials: true,
     headers
   })
