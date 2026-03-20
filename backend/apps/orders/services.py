@@ -9,12 +9,23 @@ from asgiref.sync import async_to_sync
 
 def broadcast_stock(product):
     """
-    Отправка realtime обновления stock
+    Отправляет real-time обновление остатка товара через WebSocket.
+    
+    Args:
+        product: Экземпляр модели Product с обновленным полем stock
+        
+    Returns:
+        None: Если channel_layer недоступен, тихо завершает работу
     """
     channel_layer = get_channel_layer()
 
+    if not channel_layer:
+        # Логирование можно добавить, если нужно отслеживать проблемы
+        # print(f"Channel layer not available for product {product.id}")
+        return
+
     async_to_sync(channel_layer.group_send)(
-        "stock_updates",   # ⚠ ДОЛЖНО совпадать с consumer
+        "stock_updates",  # Группа для обновлений остатков
         {
             "type": "stock_update",
             "product_id": product.id,
