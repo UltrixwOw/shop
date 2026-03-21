@@ -50,6 +50,11 @@ class Product(models.Model):
         )["rating__avg"]
 
 class ProductImage(models.Model):
+    from django.core.files.storage import default_storage
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
@@ -75,6 +80,16 @@ class ProductImage(models.Model):
         ordering = ["-is_main", "created_at"]
         
     def save(self, *args, **kwargs):
+        from django.core.files.storage import default_storage
+        import logging
+
+        logger = logging.getLogger(__name__)
+        
+    
+        logger.error(f"🔥 STORAGE CLASS: {default_storage.__class__}")
+        logger.error(f"🔥 STORAGE INSTANCE: {default_storage}")
+        logger.error(f"🔥 IMAGE NAME BEFORE SAVE: {self.image.name}")
+
         with transaction.atomic():
 
             # =========================
@@ -119,7 +134,7 @@ class ProductImage(models.Model):
                 thumb_buffer = BytesIO()
                 thumb.save(thumb_buffer, format="WEBP", quality=80)
 
-                thumb_name = self.image.name.split('.')[0] + "_thumb.webp"
+                thumb_name = os.path.basename(self.image.name).split('.')[0] + "_thumb.webp"
 
                 self.thumbnail.save(
                     thumb_name,
