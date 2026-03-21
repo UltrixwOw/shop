@@ -8,10 +8,6 @@ ALLOWED_HOSTS = [
     "www.melonishop.cc"
 ]
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static"
-]
-
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
