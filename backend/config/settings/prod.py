@@ -63,6 +63,11 @@ CSRF_COOKIE_DOMAIN = None
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# ВАЖНО: STATIC_ROOT нужен для collectstatic, даже с S3
+# Это временная директория, которая будет использоваться во время сборки
+import tempfile
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # или tempfile.mkdtemp()
+
 # ==========================================
 # S3 STORAGE SETTINGS
 # ==========================================
