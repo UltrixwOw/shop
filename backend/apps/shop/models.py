@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
+import os
 
 def validate_image_size(image):
         max_size_mb = 5
@@ -100,7 +101,8 @@ class ProductImage(models.Model):
                 buffer = BytesIO()
                 img.save(buffer, format="WEBP", quality=85)
 
-                file_name = self.image.name.split('.')[0] + ".webp"
+                name, _ = os.path.splitext(self.image.name)
+                file_name = name + ".webp"
 
                 self.image.save(
                     file_name,
