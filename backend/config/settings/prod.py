@@ -108,3 +108,8 @@ else:
     STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
     MEDIA_URL = "/media/"
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+    
+logger.error(f"🔥🔥🔥 FINAL CHECK - DJANGO_SETTINGS_MODULE: {os.getenv('DJANGO_SETTINGS_MODULE')}")
+logger.error(f"🔥🔥🔥 FINAL DEFAULT_FILE_STORAGE: {DEFAULT_FILE_STORAGE}")
+logger.error(f"🔥🔥🔥 FINAL STATICFILES_STORAGE: {STATICFILES_STORAGE}")
+logger.error(f"🔥🔥🔥 FINAL AWS_BUCKET: {AWS_STORAGE_BUCKET_NAME}")

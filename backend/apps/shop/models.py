@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
 import os
+from config.storage import media_storage
 
 def validate_image_size(image):
         max_size_mb = 5
@@ -63,13 +64,15 @@ class ProductImage(models.Model):
 
     image = models.ImageField(
         upload_to="products/%Y/%m/",
+        storage=media_storage,  # ← используем экземпляр
         validators=[validate_image_size]
     )
     
     thumbnail = models.ImageField(
         upload_to="products/thumbnails/%Y/%m/",
         blank=True,
-        null=True
+        null=True,
+        storage=media_storage  # ← используем экземпляр
     )
 
     is_main = models.BooleanField(default=False)

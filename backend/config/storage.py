@@ -25,3 +25,5 @@ class StaticStorage(S3Boto3Storage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logger.error(f"🔥 StaticStorage initialized - bucket: {self.bucket_name}, location: {self.location}")
+        
+media_storage = MediaStorage()
