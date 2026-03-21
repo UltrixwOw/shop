@@ -8,9 +8,9 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 
 import os
-
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.prod')
+# Временно используем стандартные настройки для теста
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')  # не prod
 
 application = get_wsgi_application()
