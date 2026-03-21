@@ -122,11 +122,13 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# 🔹 Static & Media
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "static"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# 🔹 Static & Media - только для локальной разработки
+"""if os.getenv("DEBUG", "True") == "True":
+    STATIC_URL = "/static/"
+    STATIC_ROOT = BASE_DIR / "static"
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+    """
 
 # 🔹 REST Framework
 REST_FRAMEWORK = {

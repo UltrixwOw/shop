@@ -1,4 +1,10 @@
+# config/settings/prod.py
 from .base import *
+
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DEBUG = False
 
@@ -48,7 +54,6 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Настройки сессий и куки
 SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
@@ -62,15 +67,12 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # S3 STORAGE SETTINGS
 # ==========================================
 
-# Получаем переменные окружения
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "eu-central-1")
 
-# Проверка наличия настроек (для отладки)
-import logging
-logger = logging.getLogger(__name__)
+# Отладка
 logger.error(f"🔥 AWS_ACCESS_KEY_ID: {'SET' if AWS_ACCESS_KEY_ID else 'NOT SET'}")
 logger.error(f"🔥 AWS_SECRET_ACCESS_KEY: {'SET' if AWS_SECRET_ACCESS_KEY else 'NOT SET'}")
 logger.error(f"🔥 AWS_STORAGE_BUCKET_NAME: {AWS_STORAGE_BUCKET_NAME}")
@@ -80,23 +82,24 @@ logger.error(f"🔥 AWS_S3_REGION_NAME: {AWS_S3_REGION_NAME}")
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_DEFAULT_ACL = "public-read"
 AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False  # Важно: отключает подписанные URL
+AWS_QUERYSTRING_AUTH = False
 
-# Custom domain
 if AWS_STORAGE_BUCKET_NAME and AWS_S3_REGION_NAME:
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-else:
-    AWS_S3_CUSTOM_DOMAIN = None
-
-# Storage classes
-# ВАЖНО: используем правильный путь к storage классам
-DEFAULT_FILE_STORAGE = "config.storage.MediaStorage"  # Убедитесь, что этот файл существует
-STATICFILES_STORAGE = "config.storage.StaticStorage"  # Добавляем и для статики
-
-# URLs
-if AWS_S3_CUSTOM_DOMAIN:
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    
+    # ВАЖНО: переопределяем URL и хранилища
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    
+    DEFAULT_FILE_STORAGE = "config.storage.MediaStorage"
+    STATICFILES_STORAGE = "config.storage.StaticStorage"
+    
+    logger.error(f"🔥 S3 CONFIGURED - STATIC URL: {STATIC_URL}")
+    logger.error(f"🔥 S3 CONFIGURED - MEDIA URL: {MEDIA_URL}")
 else:
-    MEDIA_URL = "/media/"
+    # Fallback на локальное хранилище (не должно быть в production)
+    logger.error("🔥 S3 NOT CONFIGURED - USING LOCAL STORAGE")
     STATIC_URL = "/static/"
+    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
