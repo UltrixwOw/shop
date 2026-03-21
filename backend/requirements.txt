@@ -13,3 +13,5 @@ gunicorn
 django-redis
 redis
 drf-spectacular
+django-storages[boto3]
+boto3
