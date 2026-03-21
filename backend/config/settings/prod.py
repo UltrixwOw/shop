@@ -1,6 +1,7 @@
 from .base import *
 
 DEBUG = False
+
 ALLOWED_HOSTS = [
     "meloni-backend.onrender.com",
     "meloni-frontend.onrender.com",
@@ -48,28 +49,54 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Настройки сессий и куки
-SESSION_COOKIE_SAMESITE = 'None'  # или 'None' если нужно Lax для единого адреса
+SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True  # True только для HTTPS
+SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_DOMAIN = None  # Можно оставить None
+SESSION_COOKIE_DOMAIN = None
 CSRF_COOKIE_DOMAIN = None
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# storage
+# ==========================================
+# S3 STORAGE SETTINGS
+# ==========================================
 
+# Получаем переменные окружения
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "eu-central-1")
 
+# Проверка наличия настроек (для отладки)
+import logging
+logger = logging.getLogger(__name__)
+logger.error(f"🔥 AWS_ACCESS_KEY_ID: {'SET' if AWS_ACCESS_KEY_ID else 'NOT SET'}")
+logger.error(f"🔥 AWS_SECRET_ACCESS_KEY: {'SET' if AWS_SECRET_ACCESS_KEY else 'NOT SET'}")
+logger.error(f"🔥 AWS_STORAGE_BUCKET_NAME: {AWS_STORAGE_BUCKET_NAME}")
+logger.error(f"🔥 AWS_S3_REGION_NAME: {AWS_S3_REGION_NAME}")
+
+# S3 конфигурация
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_DEFAULT_ACL = "public-read"
 AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False  # Важно: отключает подписанные URL
 
-AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+# Custom domain
+if AWS_STORAGE_BUCKET_NAME and AWS_S3_REGION_NAME:
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+else:
+    AWS_S3_CUSTOM_DOMAIN = None
 
-DEFAULT_FILE_STORAGE = "config.storage.MediaStorage"
+# Storage classes
+# ВАЖНО: используем правильный путь к storage классам
+DEFAULT_FILE_STORAGE = "config.storage.MediaStorage"  # Убедитесь, что этот файл существует
+STATICFILES_STORAGE = "config.storage.StaticStorage"  # Добавляем и для статики
 
-MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+# URLs
+if AWS_S3_CUSTOM_DOMAIN:
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
+else:
+    MEDIA_URL = "/media/"
+    STATIC_URL = "/static/"
