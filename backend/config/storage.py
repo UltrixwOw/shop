@@ -9,7 +9,6 @@ class MediaStorage(S3Boto3Storage):
     """Хранилище для медиа-файлов"""
     location = "media"
     file_overwrite = False
-    default_acl = 'public-read'
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,7 +19,6 @@ class StaticStorage(S3Boto3Storage):
     """Хранилище для статических файлов"""
     location = "static"
     file_overwrite = True
-    default_acl = 'public-read'
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

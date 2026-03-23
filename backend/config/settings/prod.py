@@ -85,7 +85,10 @@ logger.error(f"🔥 AWS_S3_REGION_NAME: {AWS_S3_REGION_NAME}")
 
 # S3 конфигурация
 AWS_S3_SIGNATURE_VERSION = "s3v4"
-AWS_DEFAULT_ACL = "public-read"
+AWS_DEFAULT_ACL = "None"
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",
+}
 AWS_S3_FILE_OVERWRITE = False
 AWS_QUERYSTRING_AUTH = False
 
