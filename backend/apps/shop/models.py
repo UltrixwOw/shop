@@ -83,44 +83,35 @@ class ProductImage(models.Model):
         ordering = ["-is_main", "created_at"]
         
     def save(self, *args, **kwargs):
-        from django.core.files.storage import default_storage
         import logging
-
         logger = logging.getLogger(__name__)
-        
-    
-        logger.error(f"🔥 STORAGE CLASS: {default_storage.__class__}")
-        logger.error(f"🔥 STORAGE INSTANCE: {default_storage}")
+
+        logger.error(f"🔥 FIELD STORAGE: {self.image.storage.__class__}")
         logger.error(f"🔥 IMAGE NAME BEFORE SAVE: {self.image.name}")
 
         with transaction.atomic():
 
-            # =========================
-            # 1️⃣ Автоматический main image
-            # =========================
+            # 1️⃣ main image
             if not self.product.images.filter(is_main=True).exclude(id=self.id).exists():
                 self.is_main = True
 
-            # =========================
-            # 2️⃣ Если is_main=True — убрать у других
-            # =========================
             if self.is_main:
                 self.product.images.filter(is_main=True).exclude(id=self.id).update(is_main=False)
 
-            # =========================
-            # 3️⃣ Оптимизация оригинала
-            # =========================
+            # 👉 СНАЧАЛА сохраняем объект (важно для S3)
+            super().save(*args, **kwargs)
+
+            # 2️⃣ обработка изображения
             if self.image:
                 img = Image.open(self.image)
 
-                # уменьшаем оригинал до 1200px
                 img.thumbnail((1200, 1200), Image.LANCZOS)
 
                 buffer = BytesIO()
                 img.save(buffer, format="WEBP", quality=85)
 
-                name, _ = os.path.splitext(self.image.name)
-                file_name = name + ".webp"
+                base_name = os.path.splitext(os.path.basename(self.image.name))[0]
+                file_name = f"{base_name}.webp"
 
                 self.image.save(
                     file_name,
@@ -128,16 +119,14 @@ class ProductImage(models.Model):
                     save=False
                 )
 
-                # =========================
-                # 4️⃣ Генерация thumbnail 400px
-                # =========================
+                # 3️⃣ thumbnail
                 thumb = Image.open(BytesIO(buffer.getvalue()))
                 thumb.thumbnail((400, 400), Image.LANCZOS)
 
                 thumb_buffer = BytesIO()
                 thumb.save(thumb_buffer, format="WEBP", quality=80)
 
-                thumb_name = os.path.basename(self.image.name).split('.')[0] + "_thumb.webp"
+                thumb_name = f"{base_name}_thumb.webp"
 
                 self.thumbnail.save(
                     thumb_name,
@@ -145,7 +134,8 @@ class ProductImage(models.Model):
                     save=False
                 )
 
-            super().save(*args, **kwargs)
+                # 👉 сохраняем обновлённые поля
+                super().save(update_fields=["image", "thumbnail"])
         
     def __str__(self):
         return f"Image for {self.product.name}"
