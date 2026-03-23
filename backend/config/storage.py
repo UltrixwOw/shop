@@ -13,55 +13,57 @@ class MediaStorage(S3Boto3Storage):
     file_overwrite = False
     
     def __init__(self, *args, **kwargs):
-        # Гарантированно убираем ACL из параметров
-        kwargs['default_acl'] = None
-        kwargs['acl'] = None  # явно отключаем
-        
-        logger.error(f"🔥 MediaStorage.__init__ START - ACL disabled")
+        # Убираем 'acl' из kwargs, если он там есть
+        kwargs.pop('acl', None)
+        # Устанавливаем default_acl = None, но не как параметр инициализации,
+        # а как атрибут после вызова super()
+        logger.error(f"🔥 MediaStorage.__init__ START")
         try:
             super().__init__(*args, **kwargs)
-            logger.error(f"🔥 MediaStorage initialized SUCCESS - bucket: {self.bucket_name}")
+            # После инициализации устанавливаем default_acl = None
+            self.default_acl = None
+            logger.error(f"🔥 MediaStorage initialized SUCCESS - bucket: {self.bucket_name}, location: {self.location}")
+            logger.error(f"🔥 MediaStorage endpoint: {self.endpoint_url}")
+            logger.error(f"🔥 MediaStorage region: {self.region_name}")
         except Exception as e:
             logger.error(f"🔥🔥🔥 MediaStorage.__init__ FAILED: {type(e).__name__} - {str(e)}")
             logger.error(traceback.format_exc())
             raise
     
+    def _get_write_parameters(self, name, content):
+        """Получаем параметры записи и принудительно удаляем ACL"""
+        params = super()._get_write_parameters(name, content)
+        # Удаляем ACL из параметров, если он там есть
+        if 'ACL' in params:
+            del params['ACL']
+            logger.error(f"🔥 Removed ACL from write parameters for: {name}")
+        return params
+    
     def _save(self, name, content):
-        """Перехватываем сохранение и принудительно удаляем ACL"""
+        """Перехватываем сохранение файла для детального логирования"""
         logger.error(f"🔥 MediaStorage._save called for: {name}")
-        
-        # Получаем параметры и гарантированно удаляем ACL
-        extra_args = self._get_write_parameters(name, content)
-        if 'ACL' in extra_args:
-            del extra_args['ACL']
-            logger.error(f"🔥 Removed ACL from extra_args")
-        
-        logger.error(f"🔥 Extra args: {extra_args}")
+        logger.error(f"🔥 Content type: {type(content)}")
         
         try:
-            # Сохраняем файл вручную, минуя стандартный _save
-            obj = self.bucket.Object(self._encode_name(self._clean_name(name)))
-            obj.upload_fileobj(content, ExtraArgs=extra_args)
-            logger.error(f"🔥 MediaStorage._save SUCCESS: {name}")
-            return name
+            # Получаем параметры и удаляем ACL
+            params = self._get_write_parameters(name, content)
+            logger.error(f"🔥 Final params for upload: {params}")
+            
+            # Сохраняем файл
+            result = super()._save(name, content)
+            logger.error(f"🔥 MediaStorage._save SUCCESS: {result}")
+            return result
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
             error_msg = e.response.get('Error', {}).get('Message', str(e))
             logger.error(f"🔥🔥🔥 AWS CLIENT ERROR - Code: {error_code}, Message: {error_msg}")
+            logger.error(f"🔥🔥🔥 Full response: {e.response}")
             logger.error(traceback.format_exc())
             raise
         except Exception as e:
             logger.error(f"🔥🔥🔥 MediaStorage._save FAILED: {type(e).__name__} - {str(e)}")
             logger.error(traceback.format_exc())
             raise
-    
-    def _get_write_parameters(self, name, content):
-        """Получаем параметры записи и удаляем ACL"""
-        params = super()._get_write_parameters(name, content)
-        # Удаляем ACL из параметров
-        if 'ACL' in params:
-            del params['ACL']
-        return params
     
     def exists(self, name):
         """Логируем проверку существования файла"""
@@ -73,6 +75,17 @@ class MediaStorage(S3Boto3Storage):
         except Exception as e:
             logger.error(f"🔥🔥🔥 MediaStorage.exists FAILED: {type(e).__name__} - {str(e)}")
             raise
+    
+    def url(self, name):
+        """Логируем генерацию URL"""
+        logger.error(f"🔥 MediaStorage.url called for: {name}")
+        try:
+            result = super().url(name)
+            logger.error(f"🔥 MediaStorage.url result: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"🔥🔥🔥 MediaStorage.url FAILED: {type(e).__name__} - {str(e)}")
+            raise
 
 
 class StaticStorage(S3Boto3Storage):
@@ -81,27 +94,13 @@ class StaticStorage(S3Boto3Storage):
     file_overwrite = True
     
     def __init__(self, *args, **kwargs):
-        kwargs['default_acl'] = None
-        kwargs['acl'] = None
+        kwargs.pop('acl', None)
         try:
             super().__init__(*args, **kwargs)
-            logger.error(f"🔥 StaticStorage initialized - bucket: {self.bucket_name}")
+            self.default_acl = None
+            logger.error(f"🔥 StaticStorage initialized - bucket: {self.bucket_name}, location: {self.location}")
         except Exception as e:
             logger.error(f"🔥🔥🔥 StaticStorage.__init__ FAILED: {type(e).__name__} - {str(e)}")
-            raise
-    
-    def _save(self, name, content):
-        extra_args = self._get_write_parameters(name, content)
-        if 'ACL' in extra_args:
-            del extra_args['ACL']
-        try:
-            obj = self.bucket.Object(self._encode_name(self._clean_name(name)))
-            obj.upload_fileobj(content, ExtraArgs=extra_args)
-            return name
-        except ClientError as e:
-            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-            error_msg = e.response.get('Error', {}).get('Message', str(e))
-            logger.error(f"🔥🔥🔥 AWS CLIENT ERROR (Static): {error_code} - {error_msg}")
             raise
     
     def _get_write_parameters(self, name, content):
@@ -109,9 +108,24 @@ class StaticStorage(S3Boto3Storage):
         if 'ACL' in params:
             del params['ACL']
         return params
+    
+    def _save(self, name, content):
+        logger.error(f"🔥 StaticStorage._save called for: {name}")
+        try:
+            result = super()._save(name, content)
+            logger.error(f"🔥 StaticStorage._save SUCCESS: {result}")
+            return result
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_msg = e.response.get('Error', {}).get('Message', str(e))
+            logger.error(f"🔥🔥🔥 AWS CLIENT ERROR (Static): {error_code} - {error_msg}")
+            raise
+        except Exception as e:
+            logger.error(f"🔥🔥🔥 StaticStorage._save FAILED: {type(e).__name__} - {str(e)}")
+            raise
 
 
-# Создаём экземпляр
+# Создаём экземпляр для использования в моделях
 try:
     media_storage = MediaStorage()
     logger.error(f"🔥 media_storage instance created successfully")
