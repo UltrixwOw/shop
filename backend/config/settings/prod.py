@@ -63,10 +63,8 @@ CSRF_COOKIE_DOMAIN = None
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# ВАЖНО: STATIC_ROOT нужен для collectstatic, даже с S3
-# Это временная директория, которая будет использоваться во время сборки
-import tempfile
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # или tempfile.mkdtemp()
+# STATIC_ROOT для collectstatic (временная директория)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # ==========================================
 # S3 STORAGE SETTINGS
@@ -85,7 +83,9 @@ logger.error(f"🔥 AWS_S3_REGION_NAME: {AWS_S3_REGION_NAME}")
 
 # S3 конфигурация
 AWS_S3_SIGNATURE_VERSION = "s3v4"
-AWS_DEFAULT_ACL = "None"
+# ⚠️ ВАЖНО: НЕ устанавливаем AWS_DEFAULT_ACL, чтобы не отправлять заголовок x-amz-acl
+AWS_DEFAULT_ACL = None  # Не нужно - просто не определяем переменную
+
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",
 }
@@ -95,7 +95,7 @@ AWS_QUERYSTRING_AUTH = False
 if AWS_STORAGE_BUCKET_NAME and AWS_S3_REGION_NAME:
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
     
-    # ВАЖНО: переопределяем URL и хранилища
+    # Переопределяем URL и хранилища
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
     
@@ -108,10 +108,9 @@ else:
     # Fallback на локальное хранилище (не должно быть в production)
     logger.error("🔥 S3 NOT CONFIGURED - USING LOCAL STORAGE")
     STATIC_URL = "/static/"
-    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
     MEDIA_URL = "/media/"
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-    
+
 logger.error(f"🔥🔥🔥 FINAL CHECK - DJANGO_SETTINGS_MODULE: {os.getenv('DJANGO_SETTINGS_MODULE')}")
 logger.error(f"🔥🔥🔥 FINAL DEFAULT_FILE_STORAGE: {DEFAULT_FILE_STORAGE}")
 logger.error(f"🔥🔥🔥 FINAL STATICFILES_STORAGE: {STATICFILES_STORAGE}")
