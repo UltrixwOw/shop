@@ -61,7 +61,7 @@ const add = async () => {
     disabled
     class="opacity-60 cursor-not-allowed"
   >
-    Out of stock
+    {{ $t('out_of_stock') }}
   </UButton>
 
   <!-- NORMAL -->
@@ -75,7 +75,7 @@ const add = async () => {
     class="flex-row-reverse"
     @click="add"
   >
-    <span v-if="isInCart">✓ In cart</span>
-    <span v-else>Add</span>
+    <span v-if="isInCart">✓ {{ $t('in_cart') }}</span>
+    <span v-else>{{ $t('add') }}</span>
   </UButton>
 </template>

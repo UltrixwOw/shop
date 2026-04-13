@@ -2,6 +2,16 @@ from .base import *
 
 DEBUG = True
 
+# Обязательные настройки для staticfiles
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# 🔥 КРИТИЧНО: Переопределяем storage на локальный (не S3)
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 CHANNEL_LAYERS = {
@@ -61,3 +71,5 @@ CSRF_COOKIE_SECURE = False
 
 # Channels для разработки
 ASGI_APPLICATION = "config.asgi.application"
+
+FRONTEND_URL = "http://127.0.0.1:3000"

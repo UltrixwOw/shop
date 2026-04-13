@@ -1,20 +1,23 @@
 <script setup lang="ts">
 // Метаданные страницы
 definePageMeta({
-  title: 'О нас'
+  title: 'about_us'
 })
 
+const { t } = useI18n()
+const localePath = useLocalePath();
+
 // Ссылки для PageHero
-const heroLinks = ref([
+const heroLinks = computed(() => [
   {
-    label: 'Наши товары',
-    to: '/products',
+    label: t('our_products'),
+    to: localePath('/products'),
     icon: 'i-heroicons-shopping-bag',
     color: 'primary' as const,
     size: 'lg' as const
   },
   {
-    label: 'Связаться с нами',
+    label: t('contact_us'),
     to: '#contact',
     color: 'neutral' as const,
     variant: 'subtle' as const,
@@ -23,91 +26,90 @@ const heroLinks = ref([
   }
 ])
 
-// Команда компании с надежными изображениями
+// Команда компании
 const teamMembers = ref([
   {
     name: 'Анна Смирнова',
-    role: 'Основатель & CEO',
-    description: 'Более 10 лет в e-commerce, создаёт уникальные shopping-экспериенсы',
-    // Используем picsum для надежности
+    role: 'founder_ceo',
+    description: 'founder_desc',
     avatar: {
-      src: 'https://picsum.photos/id/64/400/400', // мужчина в очках
+      src: 'https://picsum.photos/id/64/400/400',
       alt: 'Анна Смирнова'
     }
   },
   {
     name: 'Михаил Волков',
-    role: 'Art Director',
-    description: 'Отвечает за визуальный стиль и пользовательский опыт бренда',
+    role: 'art_director',
+    description: 'art_director_desc',
     avatar: {
-      src: 'https://picsum.photos/id/1005/400/400', // мужчина с бородой
+      src: 'https://picsum.photos/id/1005/400/400',
       alt: 'Михаил Волков'
     }
   },
   {
     name: 'Екатерина Павлова',
-    role: 'Head of Product',
-    description: 'Разрабатывает стратегию развития ассортимента',
+    role: 'head_of_product',
+    description: 'head_of_product_desc',
     avatar: {
-      src: 'https://picsum.photos/id/1027/400/400', // девушка в очках
+      src: 'https://picsum.photos/id/1027/400/400',
       alt: 'Екатерина Павлова'
     }
   },
   {
     name: 'Дмитрий Соколов',
-    role: 'Технический директор',
-    description: 'Обеспечивает бесперебойную работу платформы',
+    role: 'cto',
+    description: 'cto_desc',
     avatar: {
-      src: 'https://picsum.photos/id/1043/400/400', // мужчина в шапке
+      src: 'https://picsum.photos/id/1043/400/400',
       alt: 'Дмитрий Соколов'
     }
   }
 ])
 
 // Статистика компании
-const stats = ref([
+const stats = computed(() => [
   { 
-    label: 'Довольных клиентов', 
+    label: t('happy_customers'), 
     value: '5K+', 
     icon: 'i-heroicons-users' 
   },
   { 
-    label: 'Товаров в каталоге', 
+    label: t('products_count'), 
     value: '10K+', 
     icon: 'i-heroicons-cube' 
   },
   { 
-    label: 'Стран доставки', 
+    label: t('countries'), 
     value: '15+', 
     icon: 'i-heroicons-globe-alt' 
   },
   { 
-    label: 'Поддержка', 
+    label: t('support'), 
     value: '24/7', 
     icon: 'i-heroicons-chat-bubble-left-right' 
   }
 ])
 
 // Ценности компании
-const values = ref([
+const values = computed(() => [
   {
-    title: 'Качество',
-    description: 'Мы тщательно отбираем каждый товар, чтобы вы получали только лучшее.',
+    title: t('quality'),
+    description: t('quality_desc'),
     icon: 'i-heroicons-star'
   },
   {
-    title: 'Доверие',
-    description: 'Прозрачность на всех этапах — от заказа до доставки.',
+    title: t('trust'),
+    description: t('trust_desc'),
     icon: 'i-heroicons-hand-raised'
   },
   {
-    title: 'Инновации',
-    description: 'Постоянно внедряем новые технологии для вашего удобства.',
+    title: t('innovation'),
+    description: t('innovation_desc'),
     icon: 'i-heroicons-rocket-launch'
   },
   {
-    title: 'Забота',
-    description: 'Мы ценим каждого клиента и всегда готовы помочь.',
+    title: t('care'),
+    description: t('care_desc'),
     icon: 'i-heroicons-heart'
   }
 ])
@@ -120,46 +122,6 @@ const socialLinks = ref([
   { icon: 'i-simple-icons-youtube', to: 'https://youtube.com/@meloni', label: 'YouTube' },
   { icon: 'i-simple-icons-facebook', to: 'https://facebook.com/meloni', label: 'Facebook' }
 ])
-
-// Альтернативный вариант с инициалами (если изображения не нужны)
-const teamMembersWithInitials = ref([
-  {
-    name: 'Анна Смирнова',
-    role: 'Основатель & CEO',
-    description: 'Более 10 лет в e-commerce, создаёт уникальные shopping-экспериенсы',
-    avatar: {
-      text: 'АС', // инициалы
-      alt: 'Анна Смирнова'
-    }
-  },
-  {
-    name: 'Михаил Волков',
-    role: 'Art Director',
-    description: 'Отвечает за визуальный стиль и пользовательский опыт бренда',
-    avatar: {
-      text: 'МВ',
-      alt: 'Михаил Волков'
-    }
-  },
-  {
-    name: 'Екатерина Павлова',
-    role: 'Head of Product',
-    description: 'Разрабатывает стратегию развития ассортимента',
-    avatar: {
-      text: 'ЕП',
-      alt: 'Екатерина Павлова'
-    }
-  },
-  {
-    name: 'Дмитрий Соколов',
-    role: 'Технический директор',
-    description: 'Обеспечивает бесперебойную работу платформы',
-    avatar: {
-      text: 'ДС',
-      alt: 'Дмитрий Соколов'
-    }
-  }
-])
 </script>
 
 <template>
@@ -167,15 +129,15 @@ const teamMembersWithInitials = ref([
     <!-- PageHero компонент -->
     <UPageHero
       orientation="horizontal"
-      headline="Добро пожаловать в онлайн-магазин Meloni"
-      title="Мы создаём лучший шопинг-опыт"
-      description="История бренда, который начался с мечты сделать онлайн-покупки проще, приятнее и доступнее для каждого."
+      :headline="$t('shop_welcome')"
+      :title="$t('shop_subtitle')"
+      :description="$t('brand_history')"
       :links="heroLinks"
     >
       <!-- Изображение для правой части -->
       <img
         src="https://picsum.photos/id/42/800/600"
-        alt="О нас"
+        :alt="$t('about_us')"
         class="rounded-2xl shadow-2xl ring ring-default w-full h-auto"
         width="800"
         height="600"
@@ -187,9 +149,9 @@ const teamMembersWithInitials = ref([
     <UPageSection
       orientation="horizontal"
       reverse
-      title="Наша история"
-      description="Meloni родился в 2020 году из простой идеи: сделать онлайн-шопинг таким же приятным, как прогулка по любимому бутику. Мы заметили, что многие платформы забывают о человеческом подходе, превращая покупки в бездушный процесс."
-      headline="О НАС"
+      :title="$t('our_story')"
+      :description="$t('story_text')"
+      :headline="$t('about')"
       icon="i-heroicons-clock"
     >
       <!-- Галерея изображений в правой части -->
@@ -197,24 +159,24 @@ const teamMembersWithInitials = ref([
         <div class="space-y-4">
           <img
             src="https://picsum.photos/id/26/400/300"
-            alt="Склад"
+            alt="Warehouse"
             class="rounded-2xl w-full h-48 object-cover ring ring-default"
           />
           <img
             src="https://picsum.photos/id/27/400/300"
-            alt="Упаковка"
+            alt="Packaging"
             class="rounded-2xl w-full h-40 object-cover ring ring-default"
           />
         </div>
         <div class="space-y-4 mt-8">
           <img
             src="https://picsum.photos/id/28/400/300"
-            alt="Команда"
+            alt="Team"
             class="rounded-2xl w-full h-40 object-cover ring ring-default"
           />
           <img
             src="https://picsum.photos/id/29/400/300"
-            alt="Магазин"
+            alt="Store"
             class="rounded-2xl w-full h-48 object-cover ring ring-default"
           />
         </div>
@@ -223,9 +185,9 @@ const teamMembersWithInitials = ref([
 
     <!-- PageSection - Статистика -->
     <UPageSection
-      title="Meloni в цифрах"
-      description="Мы гордимся тем, что 80% наших клиентов возвращаются снова, а многие становятся нашими друзьями."
-      headline="СТАТИСТИКА"
+      :title="$t('stats_title')"
+      :description="$t('stats_text')"
+      headline="STATISTICS"
       icon="i-heroicons-chart-bar"
     >
       <!-- PageGrid для статистики -->
@@ -244,9 +206,9 @@ const teamMembersWithInitials = ref([
 
     <!-- PageSection - Наши ценности -->
     <UPageSection
-      title="Наши ценности"
-      description="Четыре принципа, которые делают Meloni особенным"
-      headline="ЦЕННОСТИ"
+      :title="$t('our_values')"
+      :description="$t('values_subtitle')"
+      :headline="$t('values')"
       icon="i-heroicons-heart"
     >
       <!-- PageGrid для ценностей -->
@@ -267,11 +229,11 @@ const teamMembersWithInitials = ref([
       </UPageGrid>
     </UPageSection>
 
-    <!-- PageSection - Команда с picsum изображениями -->
+    <!-- PageSection - Команда -->
     <UPageSection
-      title="Команда мечты"
-      description="За каждым успешным заказом стоят талантливые люди, которые делают Meloni особенным"
-      headline="КТО МЫ"
+      :title="$t('dream_team')"
+      :description="$t('team_desc')"
+      :headline="$t('who_we_are')"
       icon="i-heroicons-users"
     >
       <!-- PageGrid для команды -->
@@ -288,44 +250,18 @@ const teamMembersWithInitials = ref([
           />
           
           <h3 class="font-semibold text-lg">{{ member.name }}</h3>
-          <p class="text-sm text-primary mb-2">{{ member.role }}</p>
-          <p class="text-xs text-muted mb-4">{{ member.description }}</p>
+          <p class="text-sm text-primary mb-2">{{ t(member.role) }}</p>
+          <p class="text-xs text-muted mb-4">{{ t(member.description) }}</p>
         </UCard>
       </UPageGrid>
     </UPageSection>
 
-    <!-- Альтернативный вариант с инициалами (раскомментируйте если нужно) -->
-    <!-- <UPageSection
-      title="Команда мечты"
-      description="За каждым успешным заказом стоят талантливые люди, которые делают Meloni особенным"
-      headline="КТО МЫ"
-      icon="i-heroicons-users"
-    >
-      <UPageGrid>
-        <UCard
-          v-for="member in teamMembersWithInitials"
-          :key="member.name"
-          class="text-center"
-        >
-          <UAvatar
-            v-bind="member.avatar"
-            size="xl"
-            class="mx-auto mb-4"
-          />
-          
-          <h3 class="font-semibold text-lg">{{ member.name }}</h3>
-          <p class="text-sm text-primary mb-2">{{ member.role }}</p>
-          <p class="text-xs text-muted mb-4">{{ member.description }}</p>
-        </UCard>
-      </UPageGrid>
-    </UPageSection> -->
-
     <!-- PageSection - Контакты -->
     <UPageSection
       id="contact"
-      title="Свяжитесь с нами"
-      description="Мы всегда рады помочь и ответить на ваши вопросы"
-      headline="КОНТАКТЫ"
+      :title="$t('contact_title')"
+      :description="$t('contact_desc')"
+      :headline="$t('contacts')"
       icon="i-heroicons-chat-bubble-left-right"
     >
       <div class="grid lg:grid-cols-2 gap-8">

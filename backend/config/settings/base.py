@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 import dj_database_url
+from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "apps.wishlist",
     "apps.reviews",
     "storages",
+    "apps.languages",
 ]
 
 MIDDLEWARE = [
@@ -48,6 +50,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -183,3 +186,21 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_PATH": "/",          # Доступен для всего сайта
     "AUTH_COOKIE_SAMESITE": "None",   # Критично для кросс-доменных запросов!
 }
+
+# Включить систему перевода
+USE_I18N = True
+
+# Язык по умолчанию
+LANGUAGE_CODE = 'de'
+
+# Список поддерживаемых языков
+LANGUAGES = [
+    ('ru', _('Russian')),
+    ('en', _('English')),
+    ('de', _('Deutsche')),
+]
+
+# Путь к директории с файлами переводов (создадим позже)
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]

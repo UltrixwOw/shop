@@ -6,6 +6,8 @@ import { useAuthModalStore } from "~/stores/authModal";
 const auth = useAuthStore();
 const modal = useAuthModalStore();
 
+const localePath = useLocalePath()
+
 const mobileNavItems = [
   { label: 'Products', to: '/products' },
   { label: 'About us', to: '/about' },
@@ -14,22 +16,23 @@ const mobileNavItems = [
 
 <template>
   <UHeader>
-    <template #title>
-    <div class="appLogo-box">
-      <AppLogo />
-      <h1 class="text-2xl font-bold italic tracking-tight" color="pink-300">
-        Meloni
-      </h1>
-    </div>
-      
+    <template #left>
+      <NuxtLink :to="localePath('/')">
+        <div class="appLogo-box">
+          <AppLogo />
+          <h1 class="title-meloni text-2xl font-bold italic tracking-tight" color="pink-300">
+            Meloni
+          </h1>
+        </div>
+      </NuxtLink>
     </template>
     <!-- LEFT -->
 
 
     <!-- CENTER (опционально) -->
     <div class="menu-box">
-      <ULink to="/products" variant="ghost"> Products </ULink>
-      <ULink to="/about" variant="ghost"> About us </ULink>
+      <AppLink to="/products" variant="ghost">{{ $t('products') }}</AppLink>
+      <AppLink to="/about" variant="ghost">{{ $t('about_us') }}</AppLink>
     </div>
 
     <!-- RIGHT -->
@@ -52,7 +55,7 @@ const mobileNavItems = [
     <template #body>
       <div class="flex flex-col gap-4 py-4">
         <!-- Ваши кнопки/ссылки для мобильной версии -->
-        <ULink
+        <AppLink
           v-for="item in mobileNavItems"
           :key="item.to"
           :to="item.to"
@@ -60,7 +63,7 @@ const mobileNavItems = [
           active-class="text-primary font-medium"
         >
           {{ item.label }}
-        </ULink>
+        </AppLink>
       </div>
     </template>
   </UHeader>

@@ -115,3 +115,5 @@ logger.error(f"🔥🔥🔥 FINAL CHECK - DJANGO_SETTINGS_MODULE: {os.getenv('DJ
 logger.error(f"🔥🔥🔥 FINAL DEFAULT_FILE_STORAGE: {DEFAULT_FILE_STORAGE}")
 logger.error(f"🔥🔥🔥 FINAL STATICFILES_STORAGE: {STATICFILES_STORAGE}")
 logger.error(f"🔥🔥🔥 FINAL AWS_BUCKET: {AWS_STORAGE_BUCKET_NAME}")
+
+FRONTEND_URL = "https://melonishop.cc"

@@ -16,11 +16,11 @@ onMounted(() => {
     position="my-bottom-left"
     color="myPink"
   >
-    <NuxtLink to="/wishlist">
+    <AppLink to="/wishlist">
       <UButton
         icon="i-heroicons-heart"
         variant="ghost"
       />
-    </NuxtLink>
+    </AppLink>
   </UChip>
 </template>

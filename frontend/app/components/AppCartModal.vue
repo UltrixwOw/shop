@@ -4,13 +4,16 @@ import { useDebounceFn } from "@vueuse/core";
 import { useCartStore } from "~/stores/cart";
 import { useCartModalStore } from "~/stores/cartModal";
 
+const { t } = useI18n();
 const cart = useCartStore();
 const modal = useCartModalStore();
 
+const localePath = useLocalePath();
+
 // Инициализируем store при монтировании
 onMounted(async () => {
-  await cart.init() // Используем init вместо fetchCart
-})
+  await cart.init();
+});
 
 // Создаем локальное состояние для количества
 const localQty = reactive<Record<number, number>>({});
@@ -22,9 +25,9 @@ watch(
     if (!items || items.length === 0) {
       // Очищаем localQty если корзина пуста
       Object.keys(localQty).forEach(key => {
-        delete localQty[Number(key)]
-      })
-      return
+        delete localQty[Number(key)];
+      });
+      return;
     }
 
     // Обновляем localQty для каждого товара
@@ -38,16 +41,16 @@ watch(
     });
 
     // Удаляем из localQty товары, которых больше нет в корзине
-    const currentIds = new Set(items.map(i => i.id))
+    const currentIds = new Set(items.map(i => i.id));
     Object.keys(localQty).forEach(id => {
       if (!currentIds.has(Number(id))) {
-        delete localQty[Number(id)]
+        delete localQty[Number(id)];
       }
-    })
+    });
   },
   { 
     immediate: true,
-    deep: true // Следим за глубокими изменениями
+    deep: true
   }
 );
 
@@ -102,24 +105,20 @@ const totalWithLocalQty = computed(() => {
     return sum + item.price * qty;
   }, 0);
 });
-
-// Для отладки
-// console.log('Cart items:', cart.items);
-// console.log('Local quantities:', localQty);
 </script>
 
 <template>
   <UModal
     v-model:open="modal.isOpen"
-    title="Корзина"
-    description="Ваши товары"
+    :title="$t('cart')"
+    :description="$t('your_cart')"
     class="max-w-3xl"
   >
     <template #body>
       <!-- Loading state -->
       <div v-if="cart.loading" class="text-center py-10">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 mx-auto animate-spin text-gray-400" />
-        <p class="mt-2 text-gray-500">Загрузка корзины...</p>
+        <p class="mt-2 text-gray-500">{{ $t('cart_loading') }}</p>
       </div>
 
       <!-- EMPTY -->
@@ -128,15 +127,15 @@ const totalWithLocalQty = computed(() => {
           name="i-heroicons-shopping-bag"
           class="w-16 h-16 mx-auto mb-4 text-gray-300"
         />
-        <p class="text-lg">Корзина пуста</p>
+        <p class="text-lg">{{ $t('empty_cart') }}</p>
         <UButton
-          to="/products"
+          :to="localePath('/products')"
           color="primary"
           variant="soft"
           class="mt-4"
           @click="modal.close()"
         >
-          Перейти к товарам
+          {{ $t('go_to_products') }}
         </UButton>
       </div>
 
@@ -190,7 +189,7 @@ const totalWithLocalQty = computed(() => {
                     v-if="localQty[item.id] >= item.product_stock"
                     class="text-xs text-red-500 absolute whitespace-nowrap"
                   >
-                    Максимум {{ item.product_stock }}
+                    {{ $t('max_stock', { stock: item.product_stock }) }}
                   </p>
                 </div>
               </div>
@@ -214,7 +213,7 @@ const totalWithLocalQty = computed(() => {
       <div class="flex w-full gap-4 justify-between items-center">
         <!-- TOTAL -->
         <div class="flex flex-col">
-          <span class="text-sm text-gray-400">Итого:</span>
+          <span class="text-sm text-gray-400">{{ $t('cart_total') }}:</span>
           <span class="text-2xl font-bold text-primary">
             <AppMoney :value="totalWithLocalQty" />
           </span>
@@ -228,7 +227,7 @@ const totalWithLocalQty = computed(() => {
           :loading="cart.loading"
           @click="checkoutOrder"
         >
-          Оформить заказ
+          {{ $t('checkout') }}
         </UButton>
       </div>
     </template>

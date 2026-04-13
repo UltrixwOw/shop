@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import type { ButtonProps } from "@nuxt/ui";
 
+const localePath = useLocalePath();
+
+const { t } = useI18n();
+
 const links = ref<ButtonProps[]>([
   {
-    label: "Начать покупки",
-    to: "/products",
+    label: t('start_shopping'),
+    to: localePath('/products'),
     icon: "i-heroicons-shopping-bag",
   },
   {
-    label: "Узнать больше",
-    to: "/about",
+    label: t('learn_more'),
+    to: localePath('/about'),
     color: "neutral",
     variant: "subtle",
     trailingIcon: "i-lucide-arrow-right",
@@ -18,21 +22,18 @@ const links = ref<ButtonProps[]>([
 
 const cards = ref([
   {
-    title: "Быстрая доставка",
-    description:
-      "Доставляем заказы по всему миру в кратчайшие сроки.",
+    title: t('fast_delivery'),
+    description: t('fast_delivery_desc'),
     icon: "i-heroicons-truck",
   },
   {
-    title: "Безопасная оплата",
-    description:
-      "Ваши платежные данные надежно защищены.",
+    title: t('secure_payment'),
+    description: t('secure_payment_desc'),
     icon: "i-heroicons-shield-check",
   },
   {
-    title: "Поддержка 24/7",
-    description:
-      "Всегда готовы помочь с любым вопросом.",
+    title: t('support_247'),
+    description: t('support_247_desc'),
     icon: "i-heroicons-chat-bubble-left-right",
   },
 ]);
@@ -42,8 +43,8 @@ const cards = ref([
   <UContainer>
     <div>
       <UPageHero
-        title="Meloni приветствует"
-        description="Откройте для себя уникальные товары и наслаждайтесь удобным шопингом с доставкой по всему миру."
+        :title="$t('meloni_greeting')"
+        :description="$t('discover_products')"
         :links="links"
       />
     </div>

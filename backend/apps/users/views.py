@@ -17,6 +17,8 @@ from .tokens import email_verification_token
 from .models import User
 from .serializers import RegisterSerializer
 
+from django.conf import settings
+
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -46,8 +48,8 @@ class RegisterView(APIView):
 
         # 🆕 Новый пользователь
         user = User.objects.create_user(email=email, password=password)
-        user.is_active = False
-        user.is_verified = False
+        user.is_active = True # False
+        user.is_verified = True # False
         user.save()
 
         self._send_verification_email(request, user)
@@ -58,9 +60,7 @@ class RegisterView(APIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = email_verification_token.make_token(user)
 
-        FRONTEND_URL = "http://127.0.0.1:3000"
-
-        link = f"{FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+        link = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
 
         send_mail(
             subject="Подтвердите email",

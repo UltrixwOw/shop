@@ -9,6 +9,8 @@ const previewModal = useProductPreviewModalStore()
 const toast = useToast()
 const { requireAuth } = useRequireAuth()
 
+const localePath = useLocalePath()
+
 // Состояния загрузки
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -106,7 +108,7 @@ if (import.meta.server) {
   <div class="max-w-7xl mx-auto px-4 py-10">
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-3xl font-bold">
-        Wishlist
+        {{ $t('wishlist') }}
       </h1>
 
       <UButton
@@ -114,7 +116,7 @@ if (import.meta.server) {
         variant="soft"
         @click="handleShareWishlist"
       >
-        Share
+        {{ $t('share') }}
       </UButton>
     </div>
 
@@ -134,14 +136,14 @@ if (import.meta.server) {
       class="text-gray-500 text-center py-10"
     >
       <UIcon name="i-heroicons-heart" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-      <p class="text-lg">Your wishlist is empty.</p>
+      <p class="text-lg">{{ $t('empty_wishlist') }}</p>
       <UButton
-        to="/products"
+        :to="localePath('/products')"
         color="primary"
         variant="soft"
         class="mt-4"
       >
-        Browse Products
+        {{ $t('browse_products') }}
       </UButton>
     </div>
 

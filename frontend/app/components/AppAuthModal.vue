@@ -6,6 +6,7 @@ import { useAuthStore } from "~/stores/auth"
 import { useAuthModalStore } from "~/stores/authModal"
 
 const { $api } = useNuxtApp()
+const { t } = useI18n()
 const auth = useAuthStore()
 const modal = useAuthModalStore()
 
@@ -43,7 +44,7 @@ const login = async () => {
     modal.close()
     reset()
   } catch (e: any) {
-    error.value = e.response?.data?.detail || "Ошибка входа"
+    error.value = e.response?.data?.detail || t('login_error')
   } finally {
     loading.value = false
   }
@@ -53,7 +54,7 @@ const register = async () => {
   error.value = ""
 
   if (password.value !== confirmPassword.value) {
-    error.value = "Пароли не совпадают"
+    error.value = t('password_mismatch')
     return
   }
 
@@ -70,7 +71,7 @@ const register = async () => {
       mode.value = "verify"
     }
   } catch (e: any) {
-    error.value = e.response?.data?.error || "Ошибка регистрации"
+    error.value = e.response?.data?.error || t('register_error')
   } finally {
     loading.value = false
   }
@@ -79,18 +80,18 @@ const register = async () => {
 // Вычисляемое свойство для заголовка
 const modalTitle = computed(() => {
   switch (mode.value) {
-    case 'login': return 'Вход'
-    case 'register': return 'Регистрация'
-    case 'verify': return 'Проверьте почту'
+    case 'login': return t('login_title')
+    case 'register': return t('register_title')
+    case 'verify': return t('verify_title')
   }
 })
 
-// ✅ Добавляем описание для каждого режима (для screen reader'ов)
+// Описание для каждого режима (для screen reader'ов)
 const modalDescription = computed(() => {
   switch (mode.value) {
-    case 'login': return 'Форма входа с email и паролем'
-    case 'register': return 'Форма регистрации нового аккаунта'
-    case 'verify': return 'Подтверждение email адреса'
+    case 'login': return t('login_subtitle')
+    case 'register': return t('register_subtitle')
+    case 'verify': return t('verify_subtitle')
   }
 })
 </script>
@@ -113,11 +114,11 @@ const modalDescription = computed(() => {
     <template #body>
       <!-- ЛОГИН -->
       <div v-if="mode === 'login'" class="space-y-4">
-        <UFormField label="Email">
+        <UFormField :label="$t('email')">
           <UInput v-model="email" type="email" class="w-full" />
         </UFormField>
 
-        <UFormField label="Пароль">
+        <UFormField :label="$t('password')">
           <UInput v-model="password" type="password" class="w-full" />
         </UFormField>
 
@@ -131,15 +132,15 @@ const modalDescription = computed(() => {
 
       <!-- РЕГИСТРАЦИЯ -->
       <div v-else-if="mode === 'register'" class="space-y-4">
-        <UFormField label="Email">
+        <UFormField :label="$t('email')">
           <UInput v-model="email" type="email" class="w-full" />
         </UFormField>
 
-        <UFormField label="Пароль">
+        <UFormField :label="$t('password')">
           <UInput v-model="password" type="password" class="w-full" />
         </UFormField>
 
-        <UFormField label="Подтвердите пароль">
+        <UFormField :label="$t('confirm_password')">
           <UInput v-model="confirmPassword" type="password" class="w-full" />
         </UFormField>
 
@@ -154,7 +155,7 @@ const modalDescription = computed(() => {
       <!-- ПОДТВЕРЖДЕНИЕ -->
       <div v-else-if="mode === 'verify'" class="space-y-4">
         <UAlert color="primary" variant="soft">
-          Мы отправили письмо для подтверждения email.
+          {{ $t('verification_sent') }}
         </UAlert>
       </div>
     </template>
@@ -162,47 +163,49 @@ const modalDescription = computed(() => {
     <!-- ФУТЕР с кнопками действий -->
     <template #footer="{ close }">
       <div class="flex flex-col gap-4 w-full">
-        <!-- Кнопки для логина/регистрации -->
+        <!-- Кнопки для логина -->
         <template v-if="mode === 'login'">
           <UButton
             class="w-full"
             :loading="loading"
             @click="login"
           >
-            Войти
+            {{ $t('sign_in') }}
           </UButton>
           
           <div class="text-sm text-center">
-            Нет аккаунта?
+            {{ $t('no_account') }}
             <UButton variant="link" @click="switchToRegister">
-              Регистрация
+              {{ $t('register') }}
             </UButton>
           </div>
         </template>
 
+        <!-- Кнопки для регистрации -->
         <template v-else-if="mode === 'register'">
           <UButton
             class="w-full"
             :loading="loading"
             @click="register"
           >
-            Зарегистрироваться
+            {{ $t('sign_up') }}
           </UButton>
           
           <div class="text-sm text-center">
-            Уже есть аккаунт?
+            {{ $t('have_account') }}
             <UButton variant="link" @click="switchToLogin">
-              Вход
+              {{ $t('sign_in') }}
             </UButton>
           </div>
         </template>
 
+        <!-- Кнопки для верификации -->
         <template v-else-if="mode === 'verify'">
           <UButton
             class="w-full"
             @click="switchToLogin"
           >
-            Перейти ко входу
+            {{ $t('go_to_login') }}
           </UButton>
         </template>
       </div>

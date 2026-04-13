@@ -15,6 +15,7 @@ class UserManager(BaseUserManager):
 
         # Устанавливаем значения по умолчанию
         extra_fields.setdefault("is_active", True) # False
+        extra_fields.setdefault("is_verified", True) # False
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         

@@ -33,7 +33,7 @@ const openPreview = (product: any) => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold mb-8">Products</h1>
+    <h1 class="text-3xl font-bold mb-8">{{ $t("products") }}</h1>
 
     <!-- Состояние загрузки - как в wishlist -->
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -2,10 +2,12 @@ import axios, { type AxiosInstance } from 'axios'
 import { defineNuxtPlugin, useRuntimeConfig, useRequestHeaders } from '#app'
 import { useAuthStore } from '~/stores/auth'
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((nuxtApp) => {
 
   const config = useRuntimeConfig()
   const auth = useAuthStore()
+
+  const locale = (nuxtApp.$i18n as any).locale
 
   // ✅ только для SSR
   const headers = process.server
@@ -24,7 +26,7 @@ export default defineNuxtPlugin(() => {
     withCredentials: true,
     headers
   })*/
-  
+
   /** Render.com */
   const api = axios.create({
     baseURL: process.server
@@ -51,7 +53,7 @@ export default defineNuxtPlugin(() => {
       ? { cookie: headers.cookie ?? '' }
       : {}
   })
-  
+
 
   // =====================
   // REQUEST
@@ -65,6 +67,11 @@ export default defineNuxtPlugin(() => {
         `Bearer ${auth.accessToken}`
       )
     }
+
+    // ✅ i18n
+    config.headers?.set('Accept-Language', locale.value)
+
+    console.log('🌍 language:', locale.value)
 
     return config
   })

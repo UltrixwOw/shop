@@ -7,6 +7,8 @@ import { useAuthModalStore } from "~/stores/authModal"
 const auth = useAuthStore()
 const modal = useAuthModalStore()
 
+const localePath = useLocalePath()
+
 // Создаем реактивные элементы меню
 const dropdownItems = ref<DropdownMenuItem[][]>([
   // Первая группа - информация о пользователе
@@ -14,7 +16,7 @@ const dropdownItems = ref<DropdownMenuItem[][]>([
     {
       label: auth.user?.email || 'Profile',
       icon: 'i-heroicons-user-circle',
-      to: '/me',
+      to: localePath('/me'),
       type: 'link'
     }
   ],
@@ -44,7 +46,7 @@ watch(() => auth.user, () => {
       v-if="!auth.isAuthenticated"
       @click="modal.open()"
     >
-      Login
+      {{ $t('login') }}
     </UButton>
 
     <!-- DropdownMenu для авторизованных -->

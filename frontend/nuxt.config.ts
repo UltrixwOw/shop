@@ -12,7 +12,7 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api'
     }
   },
-  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@nuxt/ui', '@nuxt/image'],
+  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@nuxt/ui', '@nuxt/image', '@nuxtjs/i18n'],
   pinia: {
     storesDirs: ['./app/stores/**'],   // важно для Nuxt 4
   },
@@ -42,5 +42,21 @@ export default defineNuxtConfig({
     preference: 'system',
     fallback: 'dark',
     classSuffix: ''
+  },
+  i18n: {
+    locales: [
+      { code: 'ru', name: 'Русский', file: 'ru.json', iso: 'ru-RU' },
+      { code: 'en', name: 'English', file: 'en.json', iso: 'en-US' },
+      { code: 'de', name: 'Deutsche', file: 'de.json', iso: 'de-DE' }
+    ],
+    defaultLocale: 'de',
+    langDir: 'locales',
+    strategy: 'prefix_except_default',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root'
+    },
+    vueI18n: 'i18n.config.ts',
   },
 })

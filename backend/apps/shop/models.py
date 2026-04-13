@@ -1,3 +1,4 @@
+# apps/shop/models.py
 from django.db import models
 from PIL import Image
 from io import BytesIO
@@ -5,14 +6,16 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
+from django.core.files.storage import default_storage
 import os
-from config.storage import media_storage
+import logging
+
+logger = logging.getLogger(__name__)
 
 def validate_image_size(image):
-        max_size_mb = 5
-
-        if image.size > max_size_mb * 1024 * 1024:
-            raise ValidationError("Максимальный размер файла 5MB")
+    max_size_mb = 5
+    if image.size > max_size_mb * 1024 * 1024:
+        raise ValidationError("Максимальный размер файла 5MB")
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -51,11 +54,6 @@ class Product(models.Model):
         )["rating__avg"]
 
 class ProductImage(models.Model):
-    from django.core.files.storage import default_storage
-    import logging
-
-    logger = logging.getLogger(__name__)
-
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
@@ -64,15 +62,15 @@ class ProductImage(models.Model):
 
     image = models.ImageField(
         upload_to="products/%Y/%m/",
-        storage=media_storage,  # ← используем экземпляр
+        # Убираем storage=media_storage - используем default_storage
         validators=[validate_image_size]
     )
     
     thumbnail = models.ImageField(
         upload_to="products/thumbnails/%Y/%m/",
         blank=True,
-        null=True,
-        storage=media_storage  # ← используем экземпляр
+        null=True
+        # Убираем storage=media_storage - используем default_storage
     )
 
     is_main = models.BooleanField(default=False)
@@ -83,14 +81,10 @@ class ProductImage(models.Model):
         ordering = ["-is_main", "created_at"]
         
     def save(self, *args, **kwargs):
-        import logging
-        logger = logging.getLogger(__name__)
-
         logger.error(f"🔥 FIELD STORAGE: {self.image.storage.__class__}")
         logger.error(f"🔥 IMAGE NAME BEFORE SAVE: {self.image.name}")
 
         with transaction.atomic():
-
             # 1️⃣ main image
             if not self.product.images.filter(is_main=True).exclude(id=self.id).exists():
                 self.is_main = True
