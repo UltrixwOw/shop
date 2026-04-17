@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
-from django.conf import settings
+from config.storage import media_storage
 import os
 import logging
 
@@ -62,11 +62,13 @@ class ProductImage(models.Model):
 
     image = models.ImageField(
         upload_to="products/%Y/%m/",
+        storage=media_storage,
         validators=[validate_image_size]
     )
     
     thumbnail = models.ImageField(
         upload_to="products/thumbnails/%Y/%m/",
+        storage=media_storage,
         blank=True,
         null=True
     )
@@ -78,22 +80,8 @@ class ProductImage(models.Model):
     class Meta:
         ordering = ["-is_main", "created_at"]
     
-    def _get_storage(self):
-        """Возвращает актуальное хранилище из настроек"""
-        if settings.DEBUG:
-            from django.core.files.storage import FileSystemStorage
-            return FileSystemStorage(
-                location=settings.MEDIA_ROOT,
-                base_url=settings.MEDIA_URL
-            )
-        else:
-            # Используем класс из настроек
-            from django.core.files.storage import default_storage
-            return default_storage
-    
     def save(self, *args, **kwargs):
-        logger.error(f"🔥 DEBUG MODE: {settings.DEBUG}")
-        logger.error(f"🔥 STORAGE CLASS: {self._get_storage().__class__.__name__}")
+        logger.error(f"🔥 STORAGE CLASS: {self.image.storage.__class__.__name__}")
 
         with transaction.atomic():
             # 1️⃣ main image
@@ -103,15 +91,11 @@ class ProductImage(models.Model):
             if self.is_main:
                 self.product.images.filter(is_main=True).exclude(id=self.id).update(is_main=False)
 
-            # 👉 СНАЧАЛА сохраняем объект (важно для S3)
             super().save(*args, **kwargs)
 
             # 2️⃣ обработка изображения
             if self.image:
-                storage = self._get_storage()
-                
                 img = Image.open(self.image)
-
                 img.thumbnail((1200, 1200), Image.LANCZOS)
 
                 buffer = BytesIO()
@@ -120,14 +104,7 @@ class ProductImage(models.Model):
                 base_name = os.path.splitext(os.path.basename(self.image.name))[0]
                 file_name = f"{base_name}.webp"
 
-                # Используем актуальное хранилище
-                storage.save(
-                    f"products/{self.created_at.year}/{self.created_at.month:02d}/{file_name}",
-                    ContentFile(buffer.getvalue())
-                )
-                
-                # Обновляем путь к файлу
-                self.image.name = f"products/{self.created_at.year}/{self.created_at.month:02d}/{file_name}"
+                self.image.save(file_name, ContentFile(buffer.getvalue()), save=False)
 
                 # 3️⃣ thumbnail
                 thumb = Image.open(BytesIO(buffer.getvalue()))
@@ -137,15 +114,9 @@ class ProductImage(models.Model):
                 thumb.save(thumb_buffer, format="WEBP", quality=80)
 
                 thumb_name = f"{base_name}_thumb.webp"
-                
-                storage.save(
-                    f"products/thumbnails/{self.created_at.year}/{self.created_at.month:02d}/{thumb_name}",
-                    ContentFile(thumb_buffer.getvalue())
-                )
-                
-                self.thumbnail.name = f"products/thumbnails/{self.created_at.year}/{self.created_at.month:02d}/{thumb_name}"
 
-                # 👉 сохраняем обновлённые поля
+                self.thumbnail.save(thumb_name, ContentFile(thumb_buffer.getvalue()), save=False)
+
                 super().save(update_fields=["image", "thumbnail"])
         
     def __str__(self):
