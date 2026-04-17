@@ -97,7 +97,15 @@ class StaticStorage(S3Boto3Storage):
     def _save(self, name, content):
         if self._use_local:
             return self._local_storage._save(name, content)
-        return super()._save(name, content)
+
+        try:
+            return super()._save(name, content)
+        except Exception as e:
+            logger.error("❌ S3 SAVE ERROR:")
+            logger.error(str(e))
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
 
     def url(self, name):
         if self._use_local:
