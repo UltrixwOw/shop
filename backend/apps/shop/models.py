@@ -12,9 +12,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 def validate_image_size(image):
-    max_size_mb = 5
-    if image.size > max_size_mb * 1024 * 1024:
-        raise ValidationError("Максимальный размер файла 5MB")
+    """Проверка размера файла (безопасно для S3)"""
+    try:
+        # Пытаемся получить размер файла
+        file_size = None
+        
+        # Для новых загружаемых файлов
+        if hasattr(image, 'file') and image.file:
+            file_size = image.file.size
+        # Для существующих файлов с атрибутом size
+        elif hasattr(image, 'size'):
+            file_size = image.size
+            
+        if file_size and file_size > 5 * 1024 * 1024:
+            raise ValidationError("Максимальный размер файла 5MB")
+    except (FileNotFoundError, OSError, AttributeError, NotImplementedError):
+        # Если файл в S3 или не доступен — пропускаем проверку
+        # Это нормально для уже загруженных файлов
+        pass
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
