@@ -45,14 +45,17 @@ class MediaStorage(S3Boto3Storage):
             raise
 
     def _save(self, name, content):
-        logger.error(f"🔥 MEDIA SAVE: {name}")
-
         if self._use_local:
-            logger.error("⚠️ SAVING LOCALLY")
             return self._local_storage._save(name, content)
 
-        logger.error("✅ SAVING TO S3")
-        return super()._save(name, content)
+        try:
+            return super()._save(name, content)
+        except Exception as e:
+            logger.error("❌ S3 SAVE ERROR:")
+            logger.error(str(e))
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
 
     def url(self, name):
         if self._use_local:
@@ -97,15 +100,7 @@ class StaticStorage(S3Boto3Storage):
     def _save(self, name, content):
         if self._use_local:
             return self._local_storage._save(name, content)
-
-        try:
-            return super()._save(name, content)
-        except Exception as e:
-            logger.error("❌ S3 SAVE ERROR:")
-            logger.error(str(e))
-            import traceback
-            logger.error(traceback.format_exc())
-            raise
+        return super()._save(name, content)
 
     def url(self, name):
         if self._use_local:
