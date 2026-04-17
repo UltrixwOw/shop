@@ -6,7 +6,6 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
-from django.core.files.storage import default_storage
 import os
 import logging
 
@@ -85,51 +84,59 @@ class ProductImage(models.Model):
         logger.error(f"🔥 IMAGE NAME BEFORE SAVE: {self.image.name}")
 
         with transaction.atomic():
-            # 1️⃣ main image
             if not self.product.images.filter(is_main=True).exclude(id=self.id).exists():
                 self.is_main = True
 
             if self.is_main:
                 self.product.images.filter(is_main=True).exclude(id=self.id).update(is_main=False)
 
-            # 👉 СНАЧАЛА сохраняем объект (важно для S3)
+            # 👉 Сначала берём файл В ПАМЯТИ (до сохранения в S3)
+            original_image = self.image
+
+            if original_image:
+                try:
+                    img = Image.open(original_image)
+                    img = img.convert("RGB")
+
+                    # 🔹 resize
+                    img.thumbnail((1200, 1200), Image.LANCZOS)
+
+                    buffer = BytesIO()
+                    img.save(buffer, format="WEBP", quality=85)
+
+                    base_name = os.path.splitext(os.path.basename(original_image.name))[0]
+                    file_name = f"{base_name}.webp"
+
+                    self.image.save(
+                        file_name,
+                        ContentFile(buffer.getvalue()),
+                        save=False
+                    )
+
+                    # 🔹 thumbnail
+                    thumb = Image.open(BytesIO(buffer.getvalue()))
+                    thumb.thumbnail((400, 400), Image.LANCZOS)
+
+                    thumb_buffer = BytesIO()
+                    thumb.save(thumb_buffer, format="WEBP", quality=80)
+
+                    thumb_name = f"{base_name}_thumb.webp"
+
+                    self.thumbnail.save(
+                        thumb_name,
+                        ContentFile(thumb_buffer.getvalue()),
+                        save=False
+                    )
+
+                except Exception as e:
+                    logger.error("❌ IMAGE PROCESSING ERROR")
+                    logger.error(str(e))
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    raise
+
+            # 👉 сохраняем ОДИН раз (важно)
             super().save(*args, **kwargs)
-
-            # 2️⃣ обработка изображения
-            if self.image:
-                img = Image.open(self.image)
-
-                img.thumbnail((1200, 1200), Image.LANCZOS)
-
-                buffer = BytesIO()
-                img.save(buffer, format="WEBP", quality=85)
-
-                base_name = os.path.splitext(os.path.basename(self.image.name))[0]
-                file_name = f"{base_name}.webp"
-
-                self.image.save(
-                    file_name,
-                    ContentFile(buffer.getvalue()),
-                    save=False
-                )
-
-                # 3️⃣ thumbnail
-                thumb = Image.open(BytesIO(buffer.getvalue()))
-                thumb.thumbnail((400, 400), Image.LANCZOS)
-
-                thumb_buffer = BytesIO()
-                thumb.save(thumb_buffer, format="WEBP", quality=80)
-
-                thumb_name = f"{base_name}_thumb.webp"
-
-                self.thumbnail.save(
-                    thumb_name,
-                    ContentFile(thumb_buffer.getvalue()),
-                    save=False
-                )
-
-                # 👉 сохраняем обновлённые поля
-                super().save(update_fields=["image", "thumbnail"])
         
     def __str__(self):
         return f"Image for {self.product.name}"
