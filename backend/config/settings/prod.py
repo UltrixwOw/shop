@@ -117,3 +117,17 @@ logger.error(f"🔥🔥🔥 FINAL STATICFILES_STORAGE: {STATICFILES_STORAGE}")
 logger.error(f"🔥🔥🔥 FINAL AWS_BUCKET: {AWS_STORAGE_BUCKET_NAME}")
 
 FRONTEND_URL = "https://melonishop.cc"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+}
