@@ -6,30 +6,17 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
+from django.conf import settings
+from django.core.files.storage import get_storage_class
 import os
 import logging
 
 logger = logging.getLogger(__name__)
 
 def validate_image_size(image):
-    """Проверка размера файла (безопасно для S3)"""
-    try:
-        # Пытаемся получить размер файла
-        file_size = None
-        
-        # Для новых загружаемых файлов
-        if hasattr(image, 'file') and image.file:
-            file_size = image.file.size
-        # Для существующих файлов с атрибутом size
-        elif hasattr(image, 'size'):
-            file_size = image.size
-            
-        if file_size and file_size > 5 * 1024 * 1024:
-            raise ValidationError("Максимальный размер файла 5MB")
-    except (FileNotFoundError, OSError, AttributeError, NotImplementedError):
-        # Если файл в S3 или не доступен — пропускаем проверку
-        # Это нормально для уже загруженных файлов
-        pass
+    max_size_mb = 5
+    if image.size > max_size_mb * 1024 * 1024:
+        raise ValidationError("Максимальный размер файла 5MB")
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -76,7 +63,6 @@ class ProductImage(models.Model):
 
     image = models.ImageField(
         upload_to="products/%Y/%m/",
-        # Убираем storage=media_storage - используем default_storage
         validators=[validate_image_size]
     )
     
@@ -84,7 +70,6 @@ class ProductImage(models.Model):
         upload_to="products/thumbnails/%Y/%m/",
         blank=True,
         null=True
-        # Убираем storage=media_storage - используем default_storage
     )
 
     is_main = models.BooleanField(default=False)
@@ -93,65 +78,75 @@ class ProductImage(models.Model):
 
     class Meta:
         ordering = ["-is_main", "created_at"]
-        
+    
+    def _get_storage(self):
+        """Возвращает актуальное хранилище из настроек"""
+        if settings.DEBUG:
+            from django.core.files.storage import FileSystemStorage
+            return FileSystemStorage(
+                location=settings.MEDIA_ROOT,
+                base_url=settings.MEDIA_URL
+            )
+        else:
+            from config.storage import MediaStorage
+            return MediaStorage()
+    
     def save(self, *args, **kwargs):
-        logger.error(f"🔥 FIELD STORAGE: {self.image.storage.__class__}")
-        logger.error(f"🔥 IMAGE NAME BEFORE SAVE: {self.image.name}")
+        logger.error(f"🔥 DEBUG MODE: {settings.DEBUG}")
+        logger.error(f"🔥 STORAGE CLASS: {self._get_storage().__class__.__name__}")
 
         with transaction.atomic():
+            # 1️⃣ main image
             if not self.product.images.filter(is_main=True).exclude(id=self.id).exists():
                 self.is_main = True
 
             if self.is_main:
                 self.product.images.filter(is_main=True).exclude(id=self.id).update(is_main=False)
 
-            # 👉 Сначала берём файл В ПАМЯТИ (до сохранения в S3)
-            original_image = self.image
-
-            if original_image:
-                try:
-                    img = Image.open(original_image)
-                    img = img.convert("RGB")
-
-                    # 🔹 resize
-                    img.thumbnail((1200, 1200), Image.LANCZOS)
-
-                    buffer = BytesIO()
-                    img.save(buffer, format="WEBP", quality=85)
-
-                    base_name = os.path.splitext(os.path.basename(original_image.name))[0]
-                    file_name = f"{base_name}.webp"
-
-                    self.image.save(
-                        file_name,
-                        ContentFile(buffer.getvalue()),
-                        save=False
-                    )
-
-                    # 🔹 thumbnail
-                    thumb = Image.open(BytesIO(buffer.getvalue()))
-                    thumb.thumbnail((400, 400), Image.LANCZOS)
-
-                    thumb_buffer = BytesIO()
-                    thumb.save(thumb_buffer, format="WEBP", quality=80)
-
-                    thumb_name = f"{base_name}_thumb.webp"
-
-                    self.thumbnail.save(
-                        thumb_name,
-                        ContentFile(thumb_buffer.getvalue()),
-                        save=False
-                    )
-
-                except Exception as e:
-                    logger.error("❌ IMAGE PROCESSING ERROR")
-                    logger.error(str(e))
-                    import traceback
-                    logger.error(traceback.format_exc())
-                    raise
-
-            # 👉 сохраняем ОДИН раз (важно)
+            # 👉 СНАЧАЛА сохраняем объект (важно для S3)
             super().save(*args, **kwargs)
+
+            # 2️⃣ обработка изображения
+            if self.image:
+                storage = self._get_storage()
+                
+                img = Image.open(self.image)
+
+                img.thumbnail((1200, 1200), Image.LANCZOS)
+
+                buffer = BytesIO()
+                img.save(buffer, format="WEBP", quality=85)
+
+                base_name = os.path.splitext(os.path.basename(self.image.name))[0]
+                file_name = f"{base_name}.webp"
+
+                # Используем актуальное хранилище
+                storage.save(
+                    f"products/{self.created_at.year}/{self.created_at.month:02d}/{file_name}",
+                    ContentFile(buffer.getvalue())
+                )
+                
+                # Обновляем путь к файлу
+                self.image.name = f"products/{self.created_at.year}/{self.created_at.month:02d}/{file_name}"
+
+                # 3️⃣ thumbnail
+                thumb = Image.open(BytesIO(buffer.getvalue()))
+                thumb.thumbnail((400, 400), Image.LANCZOS)
+
+                thumb_buffer = BytesIO()
+                thumb.save(thumb_buffer, format="WEBP", quality=80)
+
+                thumb_name = f"{base_name}_thumb.webp"
+                
+                storage.save(
+                    f"products/thumbnails/{self.created_at.year}/{self.created_at.month:02d}/{thumb_name}",
+                    ContentFile(thumb_buffer.getvalue())
+                )
+                
+                self.thumbnail.name = f"products/thumbnails/{self.created_at.year}/{self.created_at.month:02d}/{thumb_name}"
+
+                # 👉 сохраняем обновлённые поля
+                super().save(update_fields=["image", "thumbnail"])
         
     def __str__(self):
         return f"Image for {self.product.name}"
