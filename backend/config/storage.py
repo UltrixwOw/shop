@@ -1,131 +1,129 @@
-# config/storage.py
 from storages.backends.s3boto3 import S3Boto3Storage
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 import logging
 import traceback
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
+logger.error("🚀 STORAGE.PY LOADED")
+logger.error(f"🚀 DEBUG VALUE AT IMPORT: {settings.DEBUG}")
+logger.error(f"🚀 DJANGO_SETTINGS_MODULE: {getattr(settings, 'SETTINGS_MODULE', 'NO MODULE')}")
 
+# ==========================================
+# MEDIA STORAGE
+# ==========================================
 class MediaStorage(S3Boto3Storage):
-    """Хранилище для медиа-файлов (S3)"""
     location = "media"
     file_overwrite = False
-    
+
     def __init__(self, *args, **kwargs):
         kwargs.pop('acl', None)
-        
-        # Если DEBUG=True - не инициализируем S3
+
+        logger.error("🔥 MediaStorage INIT CALLED")
+        logger.error(f"🔥 MediaStorage DEBUG: {settings.DEBUG}")
+
         if settings.DEBUG:
-            logger.warning("🔥 MediaStorage: DEBUG=True, using LOCAL storage")
+            logger.error("❌ USING LOCAL MEDIA STORAGE (DEBUG=True)")
             self._use_local = True
             self._local_storage = FileSystemStorage(
                 location=settings.MEDIA_ROOT,
                 base_url=settings.MEDIA_URL
             )
             return
-        
+
         self._use_local = False
-        logger.info("🔥 MediaStorage: initializing S3 storage")
+
         try:
+            logger.error("🔥 INITIALIZING S3 MEDIA STORAGE...")
             super().__init__(*args, **kwargs)
             self.default_acl = None
-            logger.info(f"✅ MediaStorage: S3 initialized - bucket: {self.bucket_name}")
+            logger.error(f"✅ S3 MEDIA OK - bucket: {self.bucket_name}")
         except Exception as e:
-            logger.error(f"❌ MediaStorage init failed: {e}")
+            logger.error(f"❌ S3 MEDIA INIT ERROR: {e}")
+            logger.error(traceback.format_exc())
             raise
-    
+
     def _save(self, name, content):
+        logger.error(f"🔥 MEDIA SAVE: {name}")
+
         if self._use_local:
+            logger.error("⚠️ SAVING LOCALLY")
             return self._local_storage._save(name, content)
+
+        logger.error("✅ SAVING TO S3")
         return super()._save(name, content)
-    
-    def exists(self, name):
-        if self._use_local:
-            return self._local_storage.exists(name)
-        try:
-            return super().exists(name)
-        except:
-            return False
-    
+
     def url(self, name):
         if self._use_local:
             return self._local_storage.url(name)
-        try:
-            return super().url(name)
-        except Exception as e:
-            logger.error(f"MediaStorage.url failed: {e}")
-            return f"{settings.MEDIA_URL}{name}"
-    
-    def delete(self, name):
-        if self._use_local:
-            return self._local_storage.delete(name)
-        return super().delete(name)
+        return super().url(name)
 
 
+# ==========================================
+# STATIC STORAGE
+# ==========================================
 class StaticStorage(S3Boto3Storage):
-    """Хранилище для статических файлов (S3)"""
     location = "static"
     file_overwrite = True
-    
+
     def __init__(self, *args, **kwargs):
         kwargs.pop('acl', None)
-        
+
+        logger.error("🔥 StaticStorage INIT CALLED")
+        logger.error(f"🔥 StaticStorage DEBUG: {settings.DEBUG}")
+
         if settings.DEBUG:
+            logger.error("❌ USING LOCAL STATIC STORAGE (DEBUG=True)")
             self._use_local = True
             self._local_storage = FileSystemStorage(
                 location=settings.STATIC_ROOT,
                 base_url=settings.STATIC_URL
             )
             return
-        
+
         self._use_local = False
+
         try:
+            logger.error("🔥 INITIALIZING S3 STATIC STORAGE...")
             super().__init__(*args, **kwargs)
             self.default_acl = None
-            logger.info(f"✅ StaticStorage: S3 initialized - bucket: {self.bucket_name}")
+            logger.error(f"✅ S3 STATIC OK - bucket: {self.bucket_name}")
         except Exception as e:
-            logger.error(f"❌ StaticStorage init failed: {e}")
+            logger.error(f"❌ S3 STATIC INIT ERROR: {e}")
+            logger.error(traceback.format_exc())
             raise
-    
+
     def _save(self, name, content):
         if self._use_local:
             return self._local_storage._save(name, content)
         return super()._save(name, content)
-    
-    def exists(self, name):
-        if self._use_local:
-            return self._local_storage.exists(name)
-        return super().exists(name)
-    
+
     def url(self, name):
         if self._use_local:
             return self._local_storage.url(name)
         return super().url(name)
-    
-    def delete(self, name):
-        if self._use_local:
-            return self._local_storage.delete(name)
-        return super().delete(name)
 
 
-# 🔥 Создаем экземпляры для использования в моделях (обратная совместимость)
-if settings.DEBUG:
-    # В режиме разработки - локальное хранилище
-    from django.core.files.storage import default_storage
-    media_storage = default_storage
-    static_storage = default_storage
-    logger.info("✅ Using LOCAL storage (DEBUG mode)")
-else:
-    # В production - S3
-    try:
-        media_storage = MediaStorage()
-        static_storage = StaticStorage()
-        logger.info("✅ Using S3 storage (PRODUCTION mode)")
-    except Exception as e:
-        logger.error(f"❌ Failed to create S3 storage, falling back to local: {e}")
+# ==========================================
+# INIT STORAGE (ВАЖНО)
+# ==========================================
+logger.error("🔥 INIT GLOBAL STORAGE OBJECTS")
+
+try:
+    logger.error(f"🔥 FINAL DEBUG BEFORE STORAGE INIT: {settings.DEBUG}")
+
+    if settings.DEBUG:
+        logger.error("❌ GLOBAL: USING LOCAL STORAGE")
         from django.core.files.storage import default_storage
         media_storage = default_storage
         static_storage = default_storage
+    else:
+        logger.error("✅ GLOBAL: USING S3 STORAGE")
+        media_storage = MediaStorage()
+        static_storage = StaticStorage()
+
+except Exception as e:
+    logger.error(f"❌ GLOBAL STORAGE INIT FAILED: {e}")
+    logger.error(traceback.format_exc())
+    raise
