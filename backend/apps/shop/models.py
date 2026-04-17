@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Avg
 from django.conf import settings
-from django.core.files.storage import get_storage_class
 import os
 import logging
 
@@ -88,8 +87,9 @@ class ProductImage(models.Model):
                 base_url=settings.MEDIA_URL
             )
         else:
-            from config.storage import MediaStorage
-            return MediaStorage()
+            # Используем класс из настроек
+            from django.core.files.storage import default_storage
+            return default_storage
     
     def save(self, *args, **kwargs):
         logger.error(f"🔥 DEBUG MODE: {settings.DEBUG}")
