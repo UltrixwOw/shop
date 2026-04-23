@@ -19,8 +19,10 @@ export const useCartStore = defineStore('cart', () => {
   const items = ref<CartItem[]>([])
   const loading = ref(false)
   const initialized = ref(false)
-
   const syncing = ref(false)
+  
+  // Множество товаров, которые сейчас добавляются
+  const pendingAdds = ref<Set<number>>(new Set())
 
   const authStore = useAuthStore()
   const isAuthenticated = computed(() => authStore.isAuthenticated)
@@ -100,7 +102,6 @@ export const useCartStore = defineStore('cart', () => {
   const fetchCart = async () => {
     if (loading.value) return
 
-    // Если неавторизован - загружаем из localStorage
     if (!isAuthenticated.value) {
       loadLocal()
       initialized.value = true
@@ -113,7 +114,6 @@ export const useCartStore = defineStore('cart', () => {
     try {
       const res = await $api.get<CartResponse>('/cart/')
       setCart(res.data)
-      // После успешной загрузки с сервера очищаем localStorage
       if (import.meta.client) {
         localStorage.removeItem('cart')
       }
@@ -130,56 +130,71 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   // =============================
-  // ADD
+  // ADD — ИСПРАВЛЕНА
   // =============================
 
   const addToCart = async (productId: number, quantity = 1) => {
-    // Проверяем существующий товар
-    const existing = findItemByProduct(productId)
+    // Защита от двойных кликов
+    if (pendingAdds.value.has(productId)) return
+    pendingAdds.value.add(productId)
 
-    if (existing) {
-      const newQty = existing.quantity + quantity
-      if (newQty > existing.product_stock) return
-      await updateQuantity(existing.id, newQty)
-      return
-    }
+    try {
+      // Проверяем существующий товар
+      let existing = findItemByProduct(productId)
 
-    // Если неавторизован - сохраняем в localStorage
-    if (!isAuthenticated.value) {
-      // Нужно получить информацию о товаре
-      const { $api } = useNuxtApp()
-      try {
-        const res = await $api.get(`/shop/products/${productId}/`)
-        const product = res.data
-
-        const newItem: CartItem = {
-          id: Date.now(), // временный ID для localStorage
-          product: productId,
-          product_name: product.name,
-          product_image: product.images?.[0]?.image || '/images/productPreview.png',
-          price: Number(product.price),
-          quantity: quantity,
-          product_stock: product.stock
-        }
-
-        items.value.push(newItem)
+      if (existing) {
+        const newQty = existing.quantity + quantity
+        if (newQty > existing.product_stock) return
+        
+        existing.quantity = newQty
         saveLocal()
-        return
-      } catch (e) {
-        console.error('Failed to get product info:', e)
+        
+        if (isAuthenticated.value) {
+          await updateQuantity(existing.id, newQty)
+        }
         return
       }
-    }
 
-    // Авторизован - отправляем на сервер
-    const { $api } = useNuxtApp()
-    try {
-      const res = await $api.post('/cart/add/', {
-        product_id: productId,
-        quantity
+      // === ТОВАРА НЕТ, НУЖНО ДОБАВИТЬ ===
+      
+      if (!isAuthenticated.value) {
+        // Неавторизованный пользователь
+        const { $api } = useNuxtApp()
+        const res = await $api.get(`/shop/products/${productId}/`)
+        const product = res.data
+        
+        // Повторная проверка (могло добавиться за время запроса)
+        existing = findItemByProduct(productId)
+        if (existing) {
+          existing.quantity += quantity
+        } else {
+          items.value.push({
+            id: Date.now(),
+            product: productId,
+            product_name: product.name,
+            product_image: product.images?.[0]?.image || '/images/productPreview.png',
+            price: Number(product.price),
+            quantity: quantity,
+            product_stock: product.stock
+          })
+        }
+        saveLocal()
+        return
+      }
+
+      // Авторизованный пользователь
+      const { $api } = useNuxtApp()
+      const res = await $api.post('/cart/add/', { 
+        product_id: productId, 
+        quantity 
       })
-
-      if (res.data?.id) {
+      
+      // Повторная проверка (могло добавиться за время запроса)
+      existing = findItemByProduct(productId)
+      if (existing) {
+        existing.quantity += quantity
+        await updateQuantity(existing.id, existing.quantity)
+      } else if (res.data?.id) {
         items.value.push({
           id: res.data.id,
           product: res.data.product,
@@ -193,8 +208,11 @@ export const useCartStore = defineStore('cart', () => {
       } else {
         await fetchCart()
       }
+      
     } catch (e) {
       console.error('Add to cart failed', e)
+    } finally {
+      pendingAdds.value.delete(productId)
     }
   }
 
@@ -206,7 +224,6 @@ export const useCartStore = defineStore('cart', () => {
     const backup = [...items.value]
     items.value = items.value.filter(i => i.id !== itemId)
 
-    // Если неавторизован - просто сохраняем в localStorage
     if (!isAuthenticated.value) {
       saveLocal()
       return
@@ -240,7 +257,6 @@ export const useCartStore = defineStore('cart', () => {
     const oldQuantity = item.quantity
     item.quantity = quantity
 
-    // Если неавторизован - просто сохраняем в localStorage
     if (!isAuthenticated.value) {
       saveLocal()
       return
@@ -266,8 +282,6 @@ export const useCartStore = defineStore('cart', () => {
 
   const syncLocalToServer = async () => {
     if (!import.meta.client) return
-
-    // Добавляем флаг, чтобы предотвратить повторную синхронизацию
     if (syncing.value) return
 
     loadLocal()
@@ -278,24 +292,19 @@ export const useCartStore = defineStore('cart', () => {
 
       try {
         const { $api } = useNuxtApp()
-
-        // Преобразуем локальные товары в формат для синхронизации
         const itemsToSync = localItems.map(item => ({
           product_id: item.product,
           quantity: item.quantity
         }))
 
-        // Отправляем все товары одним запросом
         const response = await $api.post('/cart/sync/', {
           items: itemsToSync
         })
 
-        // Обновляем корзину данными с сервера
         if (response.data?.items) {
           setCart({ items: response.data.items })
         }
 
-        // Очищаем localStorage после успешной синхронизации
         if (import.meta.client) {
           localStorage.removeItem('cart')
         }
@@ -304,14 +313,12 @@ export const useCartStore = defineStore('cart', () => {
 
       } catch (e) {
         console.error('Failed to sync cart to server:', e)
-        // При ошибке загружаем корзину с сервера
         await fetchCart()
         throw e
       } finally {
         syncing.value = false
       }
     } else if (isAuthenticated.value) {
-      // Если локальных данных нет, просто загружаем с сервера
       await fetchCart()
     }
   }
@@ -366,10 +373,8 @@ export const useCartStore = defineStore('cart', () => {
   // Следим за изменением авторизации
   watch(() => authStore.isAuthenticated, async (newVal, oldVal) => {
     if (newVal && !oldVal) {
-      // Пользователь авторизовался - синхронизируем
       await syncLocalToServer()
     } else if (!newVal && oldVal) {
-      // Пользователь вышел - загружаем из localStorage
       loadLocal()
     }
   })
@@ -380,6 +385,7 @@ export const useCartStore = defineStore('cart', () => {
     initialized,
     isAuthenticated,
     syncing,
+    pendingAdds,
 
     totalPrice,
     totalCount,

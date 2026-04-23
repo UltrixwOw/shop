@@ -32,8 +32,22 @@ const isInCart = computed(() =>
   cart.items.some(i => i.product === props.productId)
 )
 
+// Проверяем, добавляется ли этот товар прямо сейчас
+const isPending = computed(() =>
+  cart.pendingAdds.has(props.productId!)
+)
+
+// Кнопка должна быть disabled если:
+// - disabled из props
+// - товар уже в корзине
+// - товар сейчас добавляется
+// - товара нет в наличии
+const isButtonDisabled = computed(() =>
+  props.disabled || isInCart.value || isPending.value || isOutOfStock.value
+)
+
 const add = async () => {
-  if (loading.value || isOutOfStock.value) return
+  if (isButtonDisabled.value) return
 
   loading.value = true
   await cart.addToCart(props.productId!, 1)
@@ -49,10 +63,8 @@ const add = async () => {
     color="neutral"
     loading
     disabled
-  >
+  />
     
-  </UButton>
-
   <!-- OUT OF STOCK -->
   <UButton
     v-else-if="isOutOfStock"
@@ -64,18 +76,29 @@ const add = async () => {
     {{ $t('out_of_stock') }}
   </UButton>
 
-  <!-- NORMAL -->
+  <!-- IN CART (уже в корзине) -->
+  <UButton
+    v-else-if="isInCart"
+    block
+    color="myPink"
+    disabled
+    class="flex-row-reverse"
+  >
+    ✓ {{ $t('in_cart') }}
+  </UButton>
+
+  <!-- NORMAL / PENDING -->
   <UButton
     v-else
     block
-    :loading="loading"
-    :disabled="disabled || isInCart"
-    :color="isInCart ? 'myPink' : 'primary'"
+    :loading="loading || isPending"
+    :disabled="isButtonDisabled"
+    color="primary"
     icon="i-heroicons-shopping-bag"
     class="flex-row-reverse"
     @click="add"
   >
-    <span v-if="isInCart">✓ {{ $t('in_cart') }}</span>
+    <span v-if="isPending">{{ $t('adding') }}...</span>
     <span v-else>{{ $t('add') }}</span>
   </UButton>
 </template>
