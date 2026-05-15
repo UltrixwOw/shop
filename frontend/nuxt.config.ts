@@ -30,7 +30,7 @@ export default defineNuxtConfig({
   },
   routeRules: {
     '/backend/**': {
-      proxy: 'https://meloni-backend.onrender.com/**'
+      proxy: 'https://meloni-backend.onrender.com/api/**'
     }
   },
   components: [
