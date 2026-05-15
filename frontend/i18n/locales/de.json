@@ -80,5 +80,11 @@
   "head_of_product": "Head of Product",
   "head_of_product_desc": "Entwickelt die Sortimentsstrategie",
   "cto": "CTO",
-  "cto_desc": "Gewährleistet einen reibungslosen Plattformbetrieb"
+  "cto_desc": "Gewährleistet einen reibungslosen Plattformbetrieb",
+  "continue_shopping": "Weiter einkaufen",
+  "remove_product": "Kauf entfernen",
+  "remove_product_confirm": "Möchten Sie diesen Artikel wirklich aus Ihrem Warenkorb entfernen?",
+  "cancel": "Behalten",
+  "delete": "Entfernen",
+  "adding": "Hinzufügen"
 }

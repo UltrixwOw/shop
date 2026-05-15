@@ -36,7 +36,7 @@ function openLightbox(index: number) {
     :close-on-escape="true"
     :dismissible="true"
     :ui="{ content: 'focus:outline-none' }"
-    class="max-w-4xl"
+    class="max-w-4xl z-44"
   >
     <template #body>
       <div v-if="modal.product" class="space-y-6">

@@ -80,5 +80,11 @@
   "head_of_product": "Head of Product",
   "head_of_product_desc": "Develops assortment development strategy",
   "cto": "CTO",
-  "cto_desc": "Ensures smooth platform operation"
+  "cto_desc": "Ensures smooth platform operation",
+  "continue_shopping": "Continue Shopping",
+  "remove_product": "Remove purchase",
+  "remove_product_confirm": "Are you sure you want to remove this item from your cart?",
+  "cancel": "Keep",
+  "delete": "Remove",
+  "adding": "Adding"
 }

@@ -91,8 +91,12 @@ const handleShareWishlist = () => {
   })
 }
 
-const openPreview = (product: any) => {
-  previewModal.open(product);
+// =============================
+// OPEN PREVIEW
+// =============================
+
+const openPreview = async (product: any) => {
+  await previewModal.open(product.id, product);
 };
 
 // Для SSR - загружаем данные на сервере
@@ -113,7 +117,6 @@ if (import.meta.server) {
 
       <UButton
         icon="i-heroicons-share"
-        variant="soft"
         @click="handleShareWishlist"
       >
         {{ $t('share') }}
@@ -140,7 +143,6 @@ if (import.meta.server) {
       <UButton
         :to="localePath('/products')"
         color="primary"
-        variant="soft"
         class="mt-4"
       >
         {{ $t('browse_products') }}

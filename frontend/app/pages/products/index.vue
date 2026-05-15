@@ -5,73 +5,108 @@ import { useProductPreviewModalStore } from "~/stores/productPreviewModal";
 const productsStore = useProductsStore();
 const previewModal = useProductPreviewModalStore();
 
-// Состояния загрузки как в wishlist
-const loading = ref(true)
-const error = ref<string | null>(null)
+const loading = ref(true);
+const error = ref<string | null>(null);
 
-// Загружаем данные
+// =============================
+// LOAD PRODUCTS
+// =============================
+
 onMounted(async () => {
   try {
-    await productsStore.fetchProducts()
+    await productsStore.fetchProducts();
   } catch (err) {
-    error.value = 'Failed to load products'
-    console.error(err)
+    error.value = "Failed to load products";
+    console.error(err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+});
 
-// Для SSR - загружаем данные на сервере
+// SSR
 if (import.meta.server) {
-  await productsStore.fetchProducts()
+  await productsStore.fetchProducts();
 }
 
-const openPreview = (product: any) => {
-  previewModal.open(product);
+// =============================
+// OPEN PREVIEW
+// =============================
+
+const openPreview = async (product: any) => {
+  await previewModal.open(product.id, product);
 };
 </script>
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold mb-8">{{ $t("products") }}</h1>
+    <h1 class="text-3xl font-bold mb-8">
+      {{ $t("products") }}
+    </h1>
 
-    <!-- Состояние загрузки - как в wishlist -->
-    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <USkeleton v-for="n in 3" :key="n" class="h-96 rounded-lg" />
+    <!-- LOADING -->
+    <div
+      v-if="loading"
+      class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+    >
+      <USkeleton
+        v-for="n in 6"
+        :key="n"
+        class="h-96 rounded-lg"
+      />
     </div>
 
-    <!-- Ошибка - как в wishlist -->
-    <div v-else-if="error" class="text-red-500 text-center py-10">
+    <!-- ERROR -->
+    <div
+      v-else-if="error"
+      class="text-red-500 text-center py-10"
+    >
       {{ error }}
     </div>
 
-    <!-- Пустой список - как в wishlist -->
+    <!-- EMPTY -->
     <div
       v-else-if="!productsStore.items.length"
       class="text-gray-500 text-center py-10"
     >
-      <UIcon name="i-heroicons-shopping-bag" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-      <p class="text-lg">No products available.</p>
+      <UIcon
+        name="i-heroicons-shopping-bag"
+        class="w-16 h-16 mx-auto mb-4 text-gray-300"
+      />
+
+      <p class="text-lg">
+        No products available.
+      </p>
     </div>
 
-    <!-- Products - как в wishlist -->
+    <!-- PRODUCTS -->
     <div
       v-else
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
     >
       <UCard
         v-for="product in productsStore.items"
         :key="product.id"
         class="relative flex flex-col justify-between cursor-pointer hover:shadow-lg transition"
+        :ui="{
+          body: 'p-2 md:p-4',
+          base: 'overflow-hidden h-full'
+        }"
         @click="openPreview(product)"
       >
-        <!-- Wishlist -->
-        <div class="absolute top-2 right-2 z-20" @click.stop>
-          <AppAddToWishlistButton :productId="product.id" />
+        <!-- WISHLIST -->
+        <div
+          class="absolute top-2 right-2 z-20"
+          @click.stop
+        >
+          <AppAddToWishlistButton
+            :productId="product.id"
+          />
         </div>
 
-        <!-- Image -->
-        <div class="aspect-square overflow-hidden rounded-md mb-4">
+        <!-- IMAGE -->
+        <div
+          class="aspect-square overflow-hidden rounded-md mb-4"
+        >
           <NuxtImg
             v-if="product.images?.length"
             :src="product.images[0].image"
@@ -80,7 +115,9 @@ const openPreview = (product: any) => {
             loading="lazy"
             format="webp"
             quality="80"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 100vw,
+                   (max-width: 1024px) 50vw,
+                   33vw"
             class="w-full h-full object-cover hover:scale-105 transition"
           />
 
@@ -96,10 +133,12 @@ const openPreview = (product: any) => {
           />
         </div>
 
+        <!-- TITLE -->
         <h3 class="text-lg font-semibold mb-2">
           {{ product.name }}
         </h3>
 
+        <!-- RATING -->
         <div>
           <AppRatingView
             :rating="Number(product.average_rating || 0)"
@@ -107,8 +146,14 @@ const openPreview = (product: any) => {
           />
         </div>
 
-        <div class="flex justify-between items-center mt-4">
-          <AppMoney class="tabular-nums text-primary font-bold text-xl" :value="product.price" />
+        <!-- FOOTER -->
+        <div
+          class="flex justify-between items-center mt-4"
+        >
+          <AppMoney
+            class="tabular-nums text-primary font-bold text-xl"
+            :value="product.price"
+          />
 
           <AppAddToCartButton
             :productId="product.id"

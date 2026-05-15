@@ -9,50 +9,49 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   const locale = (nuxtApp.$i18n as any).locale
 
-  // ✅ только для SSR
   const headers = process.server
     ? useRequestHeaders(['cookie'])
     : {}
 
-  /** http://127.0.0.1:8000/api  
-  const api = axios.create({
-    baseURL: config.public.apiBase as string,
-    withCredentials: true,
-    headers
-  })
+  const isRender = process.env.RENDER === 'true'
 
-  const plainAxios = axios.create({
-    baseURL: config.public.apiBase as string,
-    withCredentials: true,
-    headers
-  })*/
+  let api, plainAxios
 
-  /** Render.com */
-  const api = axios.create({
-    baseURL: process.server
-      ? config.API_BASE_URL as string
-      : config.public.apiBase as string,
+  if (isRender) {
+    // 📦 Режим Render.com (прод)
+    api = axios.create({
+      baseURL: process.server
+        ? config.API_BASE_URL as string
+        : config.public.apiBase as string,
+      withCredentials: true,
+      headers: process.server
+        ? { cookie: headers.cookie ?? '' }
+        : {}
+    })
 
-    withCredentials: true,
+    plainAxios = axios.create({
+      baseURL: process.server
+        ? config.API_BASE_URL as string
+        : config.public.apiBase as string,
+      withCredentials: true,
+      headers: process.server
+        ? { cookie: headers.cookie ?? '' }
+        : {}
+    })
+  } else {
+    // 💻 Режим разработки (локально)
+    api = axios.create({
+      baseURL: config.public.apiBase as string,
+      withCredentials: true,
+      headers
+    })
 
-    // 💣 ВАЖНО: безопасно прокидываем cookie
-    headers: process.server
-      ? { cookie: headers.cookie ?? '' }
-      : {}
-  })
-
-  const plainAxios = axios.create({
-    baseURL: process.server
-      ? config.API_BASE_URL as string
-      : config.public.apiBase as string,
-
-    withCredentials: true,
-
-    // 💣 ВАЖНО: безопасно прокидываем cookie
-    headers: process.server
-      ? { cookie: headers.cookie ?? '' }
-      : {}
-  })
+    plainAxios = axios.create({
+      baseURL: config.public.apiBase as string,
+      withCredentials: true,
+      headers
+    })
+  }
 
 
   // =====================

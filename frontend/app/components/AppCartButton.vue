@@ -5,6 +5,8 @@ import { useCartStore } from "~/stores/cart";
 const modal = useCartModalStore();
 const cart = useCartStore();
 
+console.log('cart.lenght', cart.items.length)
+
 // Простое решение для гидратации
 const mounted = ref(false);
 
