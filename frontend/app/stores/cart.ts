@@ -6,6 +6,7 @@ interface CartItem {
   product: number
   product_name: string
   product_image?: string
+  product_thumbnail?: string
   price: number
   quantity: number
   product_stock: number
@@ -51,6 +52,7 @@ export const useCartStore = defineStore('cart', () => {
       product: item.product,
       product_name: item.product_name,
       product_image: item.product_image,
+      product_thumbnail: item.product_thumbnail,
       price: Number(item.price),
       quantity: Number(item.quantity),
       product_stock: Number(item.product_stock)
@@ -173,6 +175,7 @@ export const useCartStore = defineStore('cart', () => {
             product: productId,
             product_name: product.name,
             product_image: product.images?.[0]?.image || '/images/productPreview.png',
+            product_thumbnail: product.images?.[0]?.thumbnail || null,
             price: Number(product.price),
             quantity: quantity,
             product_stock: product.stock
@@ -200,6 +203,7 @@ export const useCartStore = defineStore('cart', () => {
           product: res.data.product,
           product_name: res.data.product_name,
           product_image: res.data.product_image,
+          product_thumbnail: res.data.product_thumbnail,
           price: Number(res.data.price),
           quantity: Number(res.data.quantity),
           product_stock: Number(res.data.product_stock)

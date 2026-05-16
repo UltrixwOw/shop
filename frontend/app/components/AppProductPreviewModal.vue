@@ -6,17 +6,29 @@ import { computed } from "vue";
 const modal = useProductPreviewModalStore();
 const imgModal = useImgModalStore();
 
-// Вычисляемый массив для карусели
+// =============================
+// CAROUSEL ITEMS
+// =============================
+
 const carouselItems = computed(() => {
   if (modal.product?.images?.length) {
     return modal.product.images;
   }
-  // Возвращаем массив объектов для совместимости
-  return [{ image: "/images/productPreview.png", isPlaceholder: true }];
+
+  return [
+    {
+      image: "/images/productPreview.png",
+      thumbnail: "/images/productPreview.png",
+      isPlaceholder: true,
+    },
+  ];
 });
 
+// =============================
+// LIGHTBOX
+// =============================
+
 function openLightbox(index: number) {
-  // Не открываем лайтбокс для плейсхолдера
   if (carouselItems.value[index]?.isPlaceholder) return;
 
   imgModal.open(
@@ -40,35 +52,46 @@ function openLightbox(index: number) {
   >
     <template #body>
       <div v-if="modal.product" class="space-y-6">
-        <!-- Единая карусель -->
-        <UCarousel :items="carouselItems" :ui="{ item: 'basis-1/3' }" class="w-full">
+        <!-- CAROUSEL -->
+        <UCarousel
+          :items="carouselItems"
+          :ui="{ item: 'basis-1/3' }"
+          class="w-full"
+        >
           <template #default="{ item, index }">
             <div
               class="aspect-square overflow-hidden rounded-lg"
               :class="{ 'cursor-pointer': !item.isPlaceholder }"
               @click="!item.isPlaceholder ? openLightbox(index) : null"
             >
-              <NuxtImg
-                :src="item.image"
+              <img
+                :src="item.thumbnail || item.image"
                 :alt="modal.product.name"
-                format="webp"
-                quality="80"
-                class="w-full h-full object-cover"
                 loading="lazy"
+                class="w-full h-full object-cover"
               />
             </div>
           </template>
         </UCarousel>
+
+        <!-- REVIEWS -->
         <div>
           <AppProductReviews :productId="modal.product.id" />
         </div>
 
         <USeparator />
 
-        <div class="flex justify-between">
-          <AppMoney class="tabular-nums text-primary font-bold text-xl" :value="modal.product.price" />
+        <!-- FOOTER -->
+        <div class="flex justify-between items-center">
+          <AppMoney
+            class="tabular-nums text-primary font-bold text-xl"
+            :value="modal.product.price"
+          />
 
-          <AppAddToCartButton :productId="modal.product.id" class="relative z-10 w-max" />
+          <AppAddToCartButton
+            :productId="modal.product.id"
+            class="relative z-10 w-max"
+          />
         </div>
       </div>
     </template>

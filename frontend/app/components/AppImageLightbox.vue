@@ -30,13 +30,13 @@ function prev() {
     fullscreen
     :ui="{
       header: 'absolute top-0 left-0 w-full z-10 border-none',
-      body: 'overflow-hidden',
+      body: 'overflow-hidden p-0',
     }"
     class="z-99"
   >
     <template #body>
       <div class="relative flex flex-col justify-center h-full">
-        <!-- Fullscreen Carousel -->
+        <!-- FULLSCREEN CAROUSEL -->
         <UCarousel
           ref="carousel"
           v-slot="{ item }"
@@ -46,18 +46,17 @@ function prev() {
           @select="onSelect"
         >
           <div class="flex items-center justify-center h-screen">
-            <NuxtImg
+            <!-- FULL IMAGE -->
+            <img
               :src="item.image"
-              sizes="100vw"
-              format="webp"
-              quality="90"
-              class="h-full w-auto w-max-1000px md:w-full md:h-full object-contain"
+              :alt="imgModal.title"
               loading="eager"
+              class="max-h-full max-w-full object-contain"
             />
           </div>
         </UCarousel>
 
-        <!-- Кнопка "Назад" -->
+        <!-- PREV -->
         <UButton
           v-if="imgModal.images.length > 1"
           color="neutral"
@@ -67,7 +66,7 @@ function prev() {
           icon="heroicons:chevron-left"
         />
 
-        <!-- Кнопка "Вперёд" -->
+        <!-- NEXT -->
         <UButton
           v-if="imgModal.images.length > 1"
           color="neutral"
@@ -77,8 +76,10 @@ function prev() {
           icon="heroicons:chevron-right"
         />
 
-        <!-- Thumbnails -->
-        <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
+        <!-- THUMBNAILS -->
+        <div
+          class="absolute bottom-2 left-0 right-0 flex justify-center gap-2"
+        >
           <div
             v-for="(item, index) in imgModal.images"
             :key="index"
@@ -86,13 +87,12 @@ function prev() {
             :class="{ 'opacity-100': imgModal.activeIndex === index }"
             @click="select(index)"
           >
-            <NuxtImg
-              :src="item.image"
-              width="200"
-              format="webp"
-              quality="80"
-              class="w-full h-full object-cover rounded"
+            <!-- THUMB -->
+            <img
+              :src="item.thumbnail || item.image"
+              :alt="imgModal.title"
               loading="lazy"
+              class="w-full h-full object-cover rounded"
             />
           </div>
         </div>

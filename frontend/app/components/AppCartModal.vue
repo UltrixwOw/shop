@@ -138,7 +138,7 @@ const checkoutOrder = async () => {
 
   modal.close();
 
-  await navigateTo("/checkout");
+  await navigateTo(localePath("/checkout"));
 };
 
 // =============================
@@ -207,11 +207,7 @@ const openPreview = async (productId: number) => {
 
       <!-- ITEMS -->
       <div v-else class="space-y-5">
-        <UCard
-          v-for="item in cart.items"
-          :key="item.id"
-          class="relative"
-        >
+        <UCard v-for="item in cart.items" :key="item.id" class="relative">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <!-- PRODUCT -->
             <div
@@ -219,8 +215,13 @@ const openPreview = async (productId: number) => {
               @click.stop="openPreview(item.product)"
             >
               <NuxtImg
-                :src="item.product_image || '/images/productPreview.png'"
+                :src="
+                  item.product_thumbnail ||
+                  item.product_image ||
+                  '/images/productPreview.png'
+                "
                 :alt="item.product_name"
+                loading="lazy"
                 format="webp"
                 quality="80"
                 class="w-16 h-16 rounded-md object-cover"
@@ -330,9 +331,7 @@ const openPreview = async (productId: number) => {
       <div class="flex w-full gap-4 justify-between items-center flex-col">
         <!-- TOTAL -->
         <div class="flex items-center">
-          <span class="text-2xl mr-4 text-gray-400">
-            {{ $t("cart_total") }}:
-          </span>
+          <span class="text-2xl mr-4 text-gray-400"> {{ $t("cart_total") }}: </span>
 
           <span class="text-2xl font-bold text-primary">
             <AppMoney :value="totalWithLocalQty" />
@@ -347,7 +346,7 @@ const openPreview = async (productId: number) => {
             class="mr-4"
             color="neutral"
             variant="soft"
-            :to="'/products'"
+            :to="localePath('/products')"
             @click.stop="modal.close()"
           >
             {{ $t("continue_shopping") }}
