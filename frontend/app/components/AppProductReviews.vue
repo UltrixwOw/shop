@@ -89,6 +89,9 @@ const selectedSort = computed({
         size="sm"
         class="w-56"
         placeholder="Sort by"
+        :ui="{
+          content: 'relative z-20',
+        }"
       />
     </div>
 
@@ -110,7 +113,6 @@ const selectedSort = computed({
                 <UBadge
                   v-if="review.is_mine"
                   color="primary"
-                  variant="soft"
                   size="xs"
                   icon="i-lucide-user"
                 >

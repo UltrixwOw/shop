@@ -44,7 +44,7 @@ const openPreview = async (product: any) => {
     </h1>
 
     <!-- LOADING -->
-    <div v-if="loading" class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    <div v-if="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       <USkeleton v-for="n in 6" :key="n" class="h-96 rounded-lg" />
     </div>
 
@@ -64,7 +64,7 @@ const openPreview = async (product: any) => {
     </div>
 
     <!-- PRODUCTS -->
-    <div v-else class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    <div v-else class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       <UCard
         v-for="product in productsStore.items"
         :key="product.id"
